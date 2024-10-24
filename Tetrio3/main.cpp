@@ -470,11 +470,7 @@ void NULLgameLoop() {
 		}
 #pragma endregion
 #pragma region One Block Loop
-<<<<<<< HEAD
 		BlockState bs = BlockState::Running;// = oneBlockLoop(block);
-=======
-		BlockState bs;// = oneBlockLoop(block);
->>>>>>> 8c32f6d18a61d882ae7c3c943cb3900fe78635c1
 		if (bs == BlockState::Droped)
 			continue;
 		if (bs == BlockState::Q) {

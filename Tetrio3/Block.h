@@ -75,8 +75,6 @@ private:
     void DeleteFromMap(int gameMap[24][10]);
     void DrawOnMap(int gameMap[24][10]);
 
-
-
 };
 
 
