@@ -15,17 +15,45 @@ void Tetris::Init(HANDLE _handle, HWND _hwnd)
 
 
 
-void Tetris::MoveLeft(int gameMap[24][10]) {
-
+void Tetris::MoveLeft() {
+    COORD tempPos = this->CurrentBlock.pos;
+    tempPos.X--;
+    if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+        this->CurrentBlock.pos.X--;
+        Tetris::CalculatePredictedPos();
+    }
 }
-void Tetris::MoveRight(int gameMap[24][10]) {
-
+void Tetris::MoveRight() {
+    COORD tempPos = this->CurrentBlock.pos;
+    tempPos.X++;
+    if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+        this->CurrentBlock.pos.X++;
+        Tetris::CalculatePredictedPos();
+    }
 }
-void Tetris::SoftDrop(int gameMap[24][10]) {
-
+void Tetris::SoftDrop() {
+    COORD tempPos = this->CurrentBlock.pos;
+    tempPos.Y++;
+    if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+        this->CurrentBlock.pos.Y++;
+    }
 }
 
 
+
+
+void Tetris::CalculatePredictedPos()
+{
+    COORD tempPos = this->CurrentBlock.pos;
+    for (int y = this->CurrentBlock.pos.Y; y < 24; y++) {
+        tempPos.Y++;
+        if (!CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+            tempPos.Y--;
+            this->CurrentBlock.predictedPos = tempPos;
+            return;
+        }
+    }
+}
 
 bool Tetris::CollisionCheck(int tempOffset[4][2], COORD tempPos){
 #pragma region MapEscapeCheck

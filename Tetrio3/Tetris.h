@@ -30,19 +30,21 @@ private:
 
 
 #pragma region Move
-	void MoveLeft(int gameMap[24][10]);
-	void MoveRight(int gameMap[24][10]);
-	void SoftDrop(int gameMap[24][10]);
+	void MoveLeft();
+	void MoveRight();
+	void SoftDrop();
 #pragma endregion
 #pragma region Spin
-	void SpinLeft(int gameMap[24][10]);
-	void SpinRight(int gameMap[24][10]);
-	void Flip(int gameMap[24][10]);
+	void SpinLeft();
+	void SpinRight();
+	void Flip();
 #pragma endregion
 #pragma region ETC
 	void HardDrop();
 	void Queue();
 #pragma endregion
+
+	void CalculatePredictedPos();
 
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
