@@ -1,8 +1,9 @@
 #pragma once
 
-#define MAP_BLOCK "¡á"
-#define MAP_VOID "¡à"
-#define MAP_PREDICTED "¢Ê"
+
+#define MAP_BLOCK "â– "
+#define MAP_VOID "â–¡"
+#define MAP_PREDICTED "â–§"
 
 #define MAP_WIDTH 10
 #define MAP_HEIGHT 24
@@ -124,6 +125,7 @@ struct InputKeyNums {
     static int Hold;
 };
 
+<<<<<<< HEAD
 struct CheckList_SRS {
     struct JLSTZ { // [CheckList][XY];
         static const int S_to_R[5][2];
@@ -458,3 +460,5 @@ const int MinoForms::Mino_S[4][4][4] = {
     }
 };
 #pragma endregion
+=======
+>>>>>>> 8c32f6d18a61d882ae7c3c943cb3900fe78635c1

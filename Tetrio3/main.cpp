@@ -84,14 +84,11 @@ void SetCursorVisible(bool visible) {
 void ShowTitle()
 {
 	#pragma region TETRIS TITLE
-	std::cout << "    " << "�����"    << " �����"    << " �����"    <<" �����"   <<" ����"   <<" �����" << endl;
-	std::cout << "    " << "   ��   " << " ��      " << "    ��   " <<" ��    ��" <<"   ��  " <<" ��" << endl;
-	std::cout << "    " << "   ��   " << " �����"    << "    ��   " <<" �����"   <<"   ��  " <<" �����" << endl;
-	std::cout << "    " << "   ��   " << " ��      " << "    ��   " <<" ��  ��  " <<"   ��  " <<"       ��" << endl;
-	std::cout << "    " << "   ��   " << " �����"    << "    ��   " <<" ��    ��" <<" ����"   <<" �����" << endl;
-	#pragma endregion
-
-
+	std::cout << "    " << "■■■■"    << " ■■■■"    << " ■■■■"    <<" ■■■■"   <<" ■■■"   <<" ■■■■" << endl;
+	std::cout << "    " << "   ■   " << " ■      " << "    ■   " <<" ■    ■" <<"   ■  " <<" ■" << endl;
+	std::cout << "    " << "   ■   " << " ■■■■"    << "    ■   " <<" ■■■■"   <<"   ■  " <<" ■■■■" << endl;
+	std::cout << "    " << "   ■   " << " ■      " << "    ■   " <<" ■  ■  " <<"   ■  " <<"       ■" << endl;
+	std::cout << "    " << "   ■   " << " ■■■■"    << "    ■   " <<" ■    ■" <<" ■■■"   <<" ■■■■" << endl;
 }
 
 void gotoxy(int x, int y) {
@@ -473,7 +470,11 @@ void NULLgameLoop() {
 		}
 #pragma endregion
 #pragma region One Block Loop
+<<<<<<< HEAD
 		BlockState bs = BlockState::Running;// = oneBlockLoop(block);
+=======
+		BlockState bs;// = oneBlockLoop(block);
+>>>>>>> 8c32f6d18a61d882ae7c3c943cb3900fe78635c1
 		if (bs == BlockState::Droped)
 			continue;
 		if (bs == BlockState::Q) {

@@ -35,6 +35,9 @@
 #*.sqlproj   merge=binary
 #*.wwaproj   merge=binary
 
+*.cpp text working-tree-encoding=CP949
+*.h text working-tree-encoding=CP949
+
 ###############################################################################
 # behavior for image files
 #
