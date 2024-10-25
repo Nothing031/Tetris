@@ -36,6 +36,59 @@ void Tetris::gameLoopInfinity()
 
 BlockState Tetris::blockLoop()
 {
+    
+    
+
+
+
+
+
+
+
+
+    return BlockState();
+}
+
+
+void Tetris::gameLoopInfinity()
+{
+    DrawBorder();
+
+    // full game loop
+    while (true) {
+        while (this->nextBlockQueue.size() < 7) {
+            this->nextBlockQueue.push(GetRandomMino());
+        }
+
+        this->CurrentBlock = nextBlockQueue.front();
+        nextBlockQueue.pop();
+
+        BlockState state = this->blockLoop();
+
+        if (state == BlockState::Hold) {
+            this->TryHold();
+            // reset gameMap to previuse map;
+            memcpy(gameMap, mapExceptBlock, sizeof(gameMap));
+            this->DrawMap();
+            continue;
+        }
+        else{
+            this->UpdateBlockOnMap();
+            this->DrawMap();
+            continue;
+        }
+    }
+
+
+
+
+
+
+
+}
+
+BlockState Tetris::blockLoop()
+{
 
 
 
@@ -196,7 +249,9 @@ void Tetris::HardDrop()
     this->CurrentBlock.pos.Y = this->CurrentBlock.predictedPos.Y;
     this->CurrentBlock.state = BlockState::Droped;
 }
-void Tetris::TryQueue()
+#pragma endregion
+
+void Tetris::TryHold()
 {
     this->CurrentBlock.state = BlockState::Hold;
     if (!this->BlockNextHold) {
@@ -220,7 +275,7 @@ void Tetris::TryQueue()
         return;
     }
 }
-#pragma endregion
+
 
 #pragma region Draw on/Delete from map
 void Tetris::gotoxy(short x, short y) {
@@ -251,6 +306,21 @@ void Tetris::UpdateBlockOnMap() {
         int x = this->CurrentBlock.minoOffset[i][0] + this->CurrentBlock.pos.X;
         int y = this->CurrentBlock.minoOffset[i][1] + this->CurrentBlock.pos.Y;
         gameMap[y][x] = this->CurrentBlock.minoColor;
+    }
+}
+void Tetris::DrawMap() {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            int block = gameMap[y][x];
+            if (block == -1)
+                block = Color::DarkGray;
+            gotoxy((x + offsets.MAP_X) * 2, y + offsets.MAP_Y);
+            SetConsoleTextAttribute(handle, block);
+            if (block != Color::Black && block != Color::DarkGray)
+                std::cout << MAP_BLOCK;
+            else
+                std::cout << ((block == Color::Black) ? MAP_VOID : MAP_PREDICTED);
+        }
     }
 }
 void Tetris::DrawBorder()
@@ -304,7 +374,6 @@ void Tetris::DrawBorder()
         std::cout << MAP_BLOCK;
     }
 }
-
 void Tetris::DrawInfo()
 {
     // time elapsed

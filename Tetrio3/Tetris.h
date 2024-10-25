@@ -48,9 +48,9 @@ private:
 #pragma endregion
 #pragma region ETC
 	void HardDrop();
-	void TryQueue();
 #pragma endregion
 
+	void TryHold();
 #pragma region Collision check
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
@@ -59,6 +59,7 @@ private:
 #pragma region DrawDeleteETC
 	void gotoxy(short x, short y);
 	void UpdateBlockOnMap();
+	void DrawMap();
 	void DrawBorder();
 	void DrawInfo();
 	void DrawQueueBlocks();
