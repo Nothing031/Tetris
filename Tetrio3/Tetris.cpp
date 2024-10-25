@@ -45,6 +45,51 @@ BlockState Tetris::blockLoop()
 
 
 
+void Tetris::gameLoopInfinity()
+{
+    DrawBorder();
+
+    // full game loop
+    while (true) {
+        while (this->nextBlockQueue.size() < 7) {
+            this->nextBlockQueue.push(GetRandomMino());
+        }
+
+        this->CurrentBlock = nextBlockQueue.front();
+        nextBlockQueue.pop();
+
+        
+
+
+
+        BlockState state = this->blockLoop();
+
+
+
+
+
+
+    }
+
+
+
+
+
+
+
+}
+
+BlockState Tetris::blockLoop()
+{
+
+
+
+    return BlockState();
+}
+
+
+
+
 void Tetris::Init(HANDLE _handle, HWND _hwnd)
 {
 	this->gen = mt19937(rd());
