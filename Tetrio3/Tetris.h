@@ -1,5 +1,6 @@
 #pragma once
 #define NOMINMAX
+#include <iostream>
 #include <Windows.h>
 #include <chrono>
 #include <random>
@@ -7,15 +8,20 @@
 #include <algorithm>
 #include "Tick.h"
 #include "Block.h"
+#include "gameData.h"
 
 using namespace std;
 
 class Tetris
 {
+public:
+	void gameLoopInfinity();
+
 private:
 	Block CurrentBlock;
-	queue<Block> NextBlockQueue;
+	queue<Block> nextBlockQueue;
 	Block HoldBlock;
+	bool BlockNextHold;
 
 	MinoType minoBag[7];
 	int minoBagNum = 0;
@@ -28,6 +34,7 @@ private:
 	random_device rd;
 	mt19937 gen;
 
+	BlockState blockLoop();
 
 #pragma region Move
 	void MoveLeft();
@@ -41,18 +48,34 @@ private:
 #pragma endregion
 #pragma region ETC
 	void HardDrop();
-	void Queue();
+	void TryQueue();
 #pragma endregion
+
+#pragma region Collision check
+	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
+	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
+#pragma endregion
+
+#pragma region DrawDeleteETC
+	void gotoxy(short x, short y);
+	void UpdateBlockOnMap();
+	void DrawBorder();
+	void DrawInfo();
+	void DrawQueueBlocks();
+	void Pause();
+#pragma endregion
+
+	int ClearLine();
+	void appendLine(int _y);
+
+	Block GetRandomMino();
+
 
 	void CalculatePredictedPos();
 
-	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
-	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
-
 	void GetCheckList(StateChanges changes, int _derefCheckList[5][2]);
 	StateChanges GetStateChanges(BlockState currentState, BlockState newState);
-
-
+	void FormToOffset(int minoForm[4][4], int outMoniOffset[4][2]);
 
 
 

@@ -1,5 +1,9 @@
 #pragma once
+#include <chrono>
 #include <thread>
+#include <time.h>
+#include <ctime>
+
 class Tick
 {
 public:

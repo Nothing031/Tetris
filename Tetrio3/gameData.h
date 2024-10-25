@@ -55,7 +55,8 @@ enum BlockState : int {
     L = 3, //left spin from first state
     Q = 4, //block is in queue
     Droped = 5,  //block has been stucked in bottom
-    Running = 6
+    Running = 6,
+    Hold = 7
 };
 
 enum KeyState : int {

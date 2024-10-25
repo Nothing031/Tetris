@@ -1,7 +1,15 @@
 #pragma once
+#define NOMINMAX
 #include <Windows.h>
+#include <algorithm>
+#include <conio.h>
+#include <iostream>
+#include <future>
 #include "gameData.h"
 #include "Tick.h"
+#include "Block.h"
+
+
 class Block
 {
 public:

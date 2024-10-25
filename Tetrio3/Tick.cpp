@@ -1,8 +1,5 @@
 #include "Tick.h"
-#include <chrono>
-#include <thread>
-#include <time.h>
-#include <ctime>
+
 
 Tick::Tick(int interval, bool* flag, bool* flag2)
 {
