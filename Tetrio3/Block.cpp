@@ -1,10 +1,6 @@
-#define NOMINMAX
+
 #include "Block.h"
-#include "gameData.h"
-#include <algorithm>
-#include <conio.h>
-#include <iostream>
-#include <future>
+
 
 void Block::Init(MinoType initType) {
     this->type = initType;
@@ -113,7 +109,7 @@ BlockState Block::MoveSpinBlock(int gameMap[24][10], InputKey input)
 
         // get checkList
         int _checkList[5][2];
-        StateChanges changes = Block::GetStateChanges(this->state, tempState);
+        StateChanges changes = Block::GetStaifteChanges(this->state, tempState);
         if (changes == StateChanges::Default)
             return this->state;
         Block::GetCheckList(changes, _checkList);
