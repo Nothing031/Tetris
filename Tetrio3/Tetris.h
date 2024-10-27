@@ -78,7 +78,9 @@ private:
 	StateChanges GetStateChanges(BlockState currentState, BlockState newState);
 	void FormToOffset(int minoForm[4][4], int outMoniOffset[4][2]);
 
+	void LoopReadKeyboardState(bool* _run);
 
+	void ReadKeyState(KeyState* _state, const int& keyCode);
 
 
 	Tetris(HANDLE handle, HWND hwnd) {

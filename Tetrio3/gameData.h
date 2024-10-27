@@ -96,15 +96,15 @@ struct {
 }offsets;
 
 enum InputKey : int {
-    k_Null,
-    A_Left,
-    A_Right,
-    SoftDrop,
-    HardDrop,
-    SpinLeft,
-    SpinRight,
-    SpinFilp,
-    Hold,
+    K_Null,
+    K_Arrow_Left,
+    K_Arrow_Right,
+    K_SoftDrop,
+    K_HardDrop,
+    K_SpinLeft,
+    K_SpinRight,
+    K_SpinFilp,
+    K_Hold
 };
 
 struct Handling {
@@ -127,35 +127,306 @@ struct InputKeyNums {
 
 struct CheckList_SRS {
     struct JLSTZ { // [CheckList][XY];
-        static const int S_to_R[5][2];
-        static const int R_to_S[5][2];
-        static const int R_to_F[5][2];
-        static const int F_to_R[5][2];
-        static const int F_to_L[5][2];
-        static const int L_to_F[5][2];
-        static const int L_to_S[5][2];
-        static const int S_to_L[5][2];
+        static constexpr int S_to_R[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {-1, +1},
+            {0, -2},
+            {-1, -2}
+        };
+        static constexpr int R_to_S[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {+1, -1},
+            {0, +2},
+            {+1, +2}
+        };
+        static constexpr int R_to_F[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {+1, -1},
+            {0, +2},
+            {+1, +2}
+        };
+        static constexpr int F_to_R[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {-1, +1},
+            {0, -2},
+            {-1, -2}
+        };
+        static constexpr int F_to_L[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {+1, +1},
+            {0, -2},
+            {+1, -2}
+        };
+        static constexpr int L_to_F[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {-1, -1},
+            {0, +2},
+            {-1, +2}
+        };
+        static constexpr int L_to_S[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {-1, -1},
+            {0, +2},
+            {-1, +2}
+        };
+        static constexpr int S_to_L[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {+1, +1},
+            {0, -2},
+            {+1, -2}
+        };
     };
     static struct I {
-        static const int S_to_R[5][2];
-        static const int R_to_S[5][2];
-        static const int R_to_F[5][2];
-        static const int F_to_R[5][2];
-        static const int F_to_L[5][2];
-        static const int L_to_F[5][2];
-        static const int L_to_S[5][2];
-        static const int S_to_L[5][2];
+        static constexpr int S_to_R[5][2] = {
+            {0, 0},
+            {-2, 0},
+            {+1, 0},
+            {-2, -1},
+            {+1, +2}
+        };
+        static constexpr int R_to_S[5][2] = {
+            {0, 0},
+            {+2, 0},
+            {-1, 0},
+            {+2, +1},
+            {-1, -2}
+        };
+        static constexpr int R_to_F[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {+2, 0},
+            {-1, +2},
+            {+2, -1}
+        };
+        static constexpr int F_to_R[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {-2, 0},
+            {+1, -2},
+            {-2, +1}
+        };
+        static constexpr int F_to_L[5][2] = {
+            {0, 0},
+            {+2, 0},
+            {-1, 0},
+            {+2, +1},
+            {-1, -2}
+        };
+        static constexpr int L_to_F[5][2] = {
+            {0, 0},
+            {-2, 0},
+            {+1, 0},
+            {-2, -1},
+            {+1, +2}
+        };
+        static constexpr int L_to_S[5][2] = {
+            {0, 0},
+            {+1, 0},
+            {-2, 0},
+            {+1, -2},
+            {-2, +1}
+        };
+        static constexpr int S_to_L[5][2] = {
+            {0, 0},
+            {-1, 0},
+            {+2, 0},
+            {-1, +2},
+            {+2, -1}
+        };
     };
 };
 
 struct MinoForms// [state][y][x] 
 {
-    static const int Mino_O[4][4][4];
-    static const int Mino_I[4][4][4];
-    static const int Mino_T[4][4][4];
-    static const int Mino_L[4][4][4];
-    static const int Mino_J[4][4][4];
-    static const int Mino_Z[4][4][4];
-    static const int Mino_S[4][4][4];
+    static constexpr int Mino_O[4][4][4] = {
+    {
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 1, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
+    static constexpr int Mino_I[4][4][4] = {
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 1},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 1, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {1, 1, 1, 1},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 1, 0, 0}
+    }
+    };
+    static constexpr int Mino_T[4][4][4] = {
+    {
+        {0, 1, 0, 0},
+        {1, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {1, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
+    static constexpr int Mino_L[4][4][4] = {
+    {
+        {0, 0, 1, 0},
+        {1, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {1, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {1, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
+    static constexpr int Mino_J[4][4][4] = {
+    {
+        {1, 0, 0, 0},
+        {1, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 1, 0},
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {1, 1, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {0, 1, 0, 0},
+        {1, 1, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
+    static constexpr int Mino_Z[4][4][4] = {
+    {
+        {1, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 1, 0},
+        {0, 1, 1, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {1, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {1, 1, 0, 0},
+        {1, 0, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
+    static constexpr int Mino_S[4][4][4] = {
+    {
+        {0, 1, 1, 0},
+        {1, 1, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 1, 0, 0},
+        {0, 1, 1, 0},
+        {0, 0, 1, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {0, 0, 0, 0},
+        {0, 1, 1, 0},
+        {1, 1, 0, 0},
+        {0, 0, 0, 0}
+    },
+    {
+        {1, 0, 0, 0},
+        {1, 1, 0, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 0}
+    }
+    };
 };
 

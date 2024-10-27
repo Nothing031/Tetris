@@ -1,53 +1,5 @@
 #include "Tetris.h"
 //
-void Tetris::gameLoopInfinity()
-{
-    DrawBorder();
-
-    // full game loop
-    while (true) {
-        while (this->nextBlockQueue.size() < 7) {
-            this->nextBlockQueue.push(GetRandomMino());
-        }
-
-        this->CurrentBlock = nextBlockQueue.front();
-        nextBlockQueue.pop();
-
-        
-
-
-
-        BlockState state = this->blockLoop();
-
-
-
-
-
-
-    }
-
-
-
-
-
-
-
-}
-
-BlockState Tetris::blockLoop()
-{
-    
-    
-
-
-
-
-
-
-
-
-    return BlockState();
-}
 
 
 void Tetris::gameLoopInfinity()
@@ -521,6 +473,43 @@ bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges ch
 }
 #pragma endregion
 
+#pragma region ReadKey
+/// <summary>
+/// 125hz pollingRate
+/// </summary>
+/// <param name="run flag"></param>
+void LoopUpdateInput(bool* _run)
+{
+    while (*_run) {
+        // move
+        UpdateKeyState(&KeyboardState::ArrowRight, InputKeyNums::A_Right);
+        UpdateKeyState(&KeyboardState::ArrowLeft, InputKeyNums::A_Left);
+        UpdateKeyState(&KeyboardState::SoftDrop, InputKeyNums::SoftDrop);
+        // spin
+        UpdateKeyState(&KeyboardState::SpinRight, InputKeyNums::SpinRight);
+        UpdateKeyState(&KeyboardState::SpinLeft, InputKeyNums::SpinLeft);
+        UpdateKeyState(&KeyboardState::SpinFlip, InputKeyNums::SpinFilp);
+        // etc command
+        UpdateKeyState(&KeyboardState::Hold, InputKeyNums::Hold);
+        UpdateKeyState(&KeyboardState::HardDrop, InputKeyNums::HardDrop);
+        this_thread::sleep_for(chrono::milliseconds(8));
+    }
+}
+
+void UpdateKeyState(KeyState* _state, const int& keyCode)
+{
+    int _input = (GetAsyncKeyState(keyCode) & 0x8000);
+    if (_input && *_state != KeyState::Pressed)
+        *_state = KeyState::Pressing;
+    else if (_input && *_state == KeyState::Pressed)
+        *_state = KeyState::Pressed;
+    else
+        *_state = KeyState::Released;
+}
+#pragma endregion
+
+
+
 void Tetris::CalculatePredictedPos()
 {
     COORD tempPos = this->CurrentBlock.pos;
@@ -578,7 +567,7 @@ StateChanges Tetris::GetStateChanges(BlockState currentState, BlockState newStat
     default: break;
     }
     if (this->CurrentBlock.type == MinoType::Mino_I)
-        changes = (StateChanges)((int)changes + 8); // I mino
+        changes = static_cast<StateChanges>(static_cast<int>(changes) + 8); // I mino
     else if (this->CurrentBlock.type == MinoType::Mino_O)
         changes = StateChanges::Default;
     return changes;

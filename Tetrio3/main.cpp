@@ -46,12 +46,10 @@ void DrawBorder();
 void gotoxy(int x, int y);
 void ClearLine(int _y);
 int bingoCheck();
-void LoopReadKeyboardState(bool* run);
-void ReadKeyState(KeyState* _state, const int& keyCode);
+void LoopUpdateInput(bool* run);
+void UpdateKeyState(KeyState* _state, const int& keyCode);
 
 MinoType GetRandomMino();
-BlockState NULLoneBlockLoop(Block& b);
-void NULLgameLoop();
 
 int main()
 {
@@ -60,13 +58,13 @@ int main()
 	bool run = true;
 	Init();
 	ShowTitle();
-	thread t(LoopReadKeyboardState, &run);
-	_getch();
+	thread t(LoopUpdateInput, &run);
+
 	while(true) {
 
-		NULLgameLoop();
+		//NULLgameLoop();
 		
-
+		Sleep(100);
 	}
 }
 
@@ -122,34 +120,12 @@ int bingoCheck() {
 	}
 	return lineCount;
 }
-void LoopReadKeyboardState(bool * run)
-{
-	while(*run) {
-		// move
-		ReadKeyState(&KeyboardState::ArrowRight, InputKeyNums::A_Right);
-		ReadKeyState(&KeyboardState::ArrowLeft, InputKeyNums::A_Left);
-		ReadKeyState(&KeyboardState::SoftDrop, InputKeyNums::SoftDrop);
-		// spin
-		ReadKeyState(&KeyboardState::SpinRight, InputKeyNums::SpinRight);
-		ReadKeyState(&KeyboardState::SpinLeft, InputKeyNums::SpinLeft);
-		ReadKeyState(&KeyboardState::SpinFlip, InputKeyNums::SpinFilp);
-		// etc command
-		ReadKeyState(&KeyboardState::Hold, InputKeyNums::Hold);
-		ReadKeyState(&KeyboardState::HardDrop, InputKeyNums::HardDrop);
-		this_thread::sleep_for(chrono::milliseconds(1));
-	}
-}
 
-void ReadKeyState(KeyState* _state, const int& keyCode)
-{
-	int _input = (GetAsyncKeyState(keyCode) & 0x8000);
-	if (_input && *_state != KeyState::Pressed)
-		*_state = KeyState::Pressing;
-	else if (_input && *_state == KeyState::Pressed)
-		*_state = KeyState::Pressed;
-	else
-		*_state = KeyState::Released;
-}
+/// <summary>
+/// 125 hz polling rate
+/// </summary>
+/// <param name="run flag"></param>
+
 
 void DrawMap() {
 	for (int y = 0; y < MAP_HEIGHT; y++) {
@@ -278,230 +254,6 @@ MinoType GetRandomMino() {
 		minoBagNum++;
 
 	return type;
-}
-BlockState NULLoneBlockLoop(Block& b) {
-	bool processNext = true;
-#pragma region Tick
-	//forcedrop
-	bool ForceDropCounting = false;
-	bool ForceDrop = false;
-	Tick ForceDropTick(2000, &ForceDrop, &processNext);
-	//gravity
-	bool gravityDrop = false;
-	Tick GravityTick(1000, &gravityDrop, &processNext);
-	GravityTick.Start();
-#pragma endregion
-	//DAS system
-	InputKey currentArrow = k_Null;
-	bool fDAS = false;
-	bool fARR = false;
-	bool fSDF = false;
-	Tick DAS_Tick(Handling::DAS, &fDAS, &processNext);
-	Tick ARR_Tick(Handling::ARR, &fARR, &processNext);
-	Tick SDF_Tick(Handling::SDF, &fSDF, &processNext);
-
-	BlockState _state = b.state;
-	queue<InputKey> inputQueue;
-	while (true) {
-#pragma region ReadKey
-		//if (KeyboardState::Hold || KeyboardState::HardDrop) {
-		//	processNext = true;
-		//	if (KeyboardState::HardDrop == KeyState::Pressing) {
-		//		KeyboardState::HardDrop = KeyState::Pressed;
-		//		inputQueue.push(InputKey::HardDrop);
-		//	}
-		//	else if (KeyboardState::Hold == KeyState::Pressing) {
-		//		KeyboardState::Hold = KeyState::Pressed;
-		//		inputQueue.push(InputKey::Hold);
-		//	}
-		//}
-		//// spin
-		//if (KeyboardState::SpinFlip == KeyState::Pressing) {
-		//	processNext = true;
-		//	KeyboardState::SpinFlip = KeyState::Pressed;
-		//	inputQueue.push(InputKey::SpinFilp);
-		//}
-		//else if (KeyboardState::SpinLeft == KeyState::Pressing) {
-		//	processNext = true;
-		//	KeyboardState::SpinLeft = KeyState::Pressed;
-		//	inputQueue.push(InputKey::SpinLeft);
-		//}
-		//else if (KeyboardState::SpinRight == KeyState::Pressing) {
-		//	processNext = true;
-		//	KeyboardState::SpinRight = KeyState::Pressed;
-		//	inputQueue.push(InputKey::SpinRight);
-		//}
-		//// move
-		//if (KeyboardState::ArrowLeft) {
-		//	if (KeyboardState::ArrowLeft == KeyState::Pressing) {
-		//		processNext = true;
-		//		KeyboardState::ArrowLeft = KeyState::Pressed;
-		//		DAS_Tick.Stop();
-		//		DAS_Tick.Start();
-		//		inputQueue.push(InputKey::A_Left);
-		//	}
-		//	else if (KeyboardState::ArrowLeft == KeyState::Pressed) {
-		//		if (fDAS) {
-		//			fDAS = false;
-		//			inputQueue.push(InputKey::A_Left);
-		//		}
-		//	}
-		//}
-		//else if (KeyboardState::ArrowRight) {
-		//	if (KeyboardState::ArrowRight == KeyState::Pressing) {
-		//		processNext = true;
-		//		KeyboardState::ArrowRight = KeyState::Pressed;
-		//		DAS_Tick.Stop();
-		//		DAS_Tick.Start();
-		//		inputQueue.push(InputKey::A_Right);
-		//	}
-		//	else if (KeyboardState::ArrowRight == KeyState::Pressed) {
-		//		if (fDAS) {
-		//			fDAS = false;
-		//			inputQueue.push(InputKey::A_Right);
-		//		}
-		//	}
-		//}
-		//else {
-		//	DAS_Tick.Stop();
-		//	fDAS = false;
-		//}		// soft drop
-
-		//if (KeyboardState::SoftDrop) {
-		//	if (SDF_Tick.running) {
-		//		if (fSDF) {
-		//			fSDF = false;
-		//			inputQueue.push(InputKey::SoftDrop);
-		//		}
-		//	}
-		//	else {
-		//		SDF_Tick.Start();
-		//		inputQueue.push(InputKey::SoftDrop);
-		//	}
-		//}
-		//else {
-		//	SDF_Tick.Stop();
-		//}
-#pragma endregion
-		if (processNext) {
-			processNext = false;
-#pragma region TickCheck
-			// gravity
-			if (gravityDrop) {
-				gravityDrop = false;
-				b.TryGravityDrop(gameMap);
-			}
-			// forcedrop
-			if (ForceDrop)
-				b.ForceDrop();
-#pragma endregion
-#pragma region BlockProcess
-			if (!inputQueue.empty()) {
-				while (!inputQueue.empty()) {
-					_state = b.Process(gameMap, inputQueue.front());
-					inputQueue.pop();
-				}
-			}
-#pragma endregion
-#pragma region StateCheck
-			if (_state == BlockState::Droped) {
-				GravityTick.Stop();
-				DrawMap();
-				return _state;
-			}
-			else if (_state == BlockState::Q) {
-				GravityTick.Stop();
-				return _state;
-			}
-#pragma endregion
-#pragma region Force drop check
-			if (b.pos.Y == b.predictedPos.Y && !ForceDropCounting) {
-				ForceDropTick.Start();
-				ForceDropCounting = true;
-			}
-			else if (b.pos.Y != b.predictedPos.Y && ForceDropCounting) {
-				ForceDropTick.Stop();
-				ForceDropCounting = false;
-			}
-#pragma endregion 
-			DrawMap();
-		}
-		else
-			this_thread::sleep_for(chrono::milliseconds(1));
-	}
-}
-void NULLgameLoop() {
-	system("cls");
-	// initiallize Map
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			gameMap[i][j] = Color::Black;
-		}
-	}
-
-	DrawBorder();
-
-	for (int i = 0; i < 6; i++) {
-		Block b(GetRandomMino());
-		blockQueue.push(b);
-	}
-	int lineClear = 0;
-	while (true) { // fullGameLoop;
-#pragma region block spawn process
-		if (blockQueue.size() < 6) {
-			Block b(GetRandomMino());
-			blockQueue.push(b);
-		}
-		// Clearline;
-		lineClear += bingoCheck();
-		SetConsoleTextAttribute(handle, Color::White);
-		gotoxy(17 * 2, 24);
-		std::cout << "Lines :                ";
-		gotoxy(17 * 2, 24);
-		std::cout << "Lines : " << lineClear;
-		// draw queue block
-		DrawQueueBlocks();
-
-		// get block
-		Block block = blockQueue.front();
-		blockQueue.pop();
-		
-		// if collision from spawn point
-		if (!block.TrySpawn(gameMap)) {
-			break;
-		}
-#pragma endregion
-#pragma region One Block Loop
-		BlockState bs = BlockState::Running;// = oneBlockLoop(block);
-		if (bs == BlockState::Droped)
-			continue;
-		if (bs == BlockState::Q) {
-			if (!holdQ.empty()) {
-				Block _b = holdQ.front();
-				holdQ.pop();
-				queue<Block> _tempQueue;
-				_tempQueue.push(_b);
-				while (!blockQueue.empty()) {
-					_tempQueue.push(blockQueue.front());
-					blockQueue.pop();
-				}
-				blockQueue = _tempQueue;
-
-				holdQ.push(block);
-				continue;
-			}
-			else {
-				holdQ.push(block);
-				continue;
-			}
-		}
-#pragma endregion
-	}
-
-	SetConsoleTextAttribute(handle, Color::White);
-	std::cout << "GAME OVER" << endl;
-	int __loop__ = _getch();
-	system("cls");
 }
 
 
