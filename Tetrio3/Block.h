@@ -19,6 +19,11 @@ public:
     COORD pos;
     COORD predictedPos;
     
+    int prevMinoOffset[4][2];
+    COORD prevPos;
+    COORD prevPredictedPos;
+
+
     int minoOffset[4][2]; // [count][x, y]
     int minoForm_All[4][4][4]; //[state][y][x]
 

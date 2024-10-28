@@ -24,6 +24,7 @@ public:
 
 	}
 
+
 	void gameLoopInfinity();
 
 private:
@@ -34,8 +35,13 @@ private:
 
 	MinoType minoBag[7];
 	int minoBagNum = 0;
-	int gameMap[24][10];
-	int mapExceptBlock[24][10];
+	int gameMap[MAP_HEIGHT][MAP_WIDTH];
+	int prevGameMap[MAP_HEIGHT][MAP_WIDTH];
+	int mapExceptBlock[MAP_HEIGHT][MAP_WIDTH];
+
+	int prevOffset[4][2];
+	COORD prevPos;
+	COORD prevPredictedPos;
 
 	HANDLE handle;
 	HWND hwnd;
@@ -45,11 +51,34 @@ private:
 
 	BlockState blockLoop();
 
-	Tick gameTick;
+	// tick
+	Tick gameUpdateTick;
 	Tick inputTick;
-	Tick arrTick;
-	Tick dasTick;
+	Tick leftArrTick;
+	Tick leftDasTick;
+	Tick rightArrTick;
+	Tick rightDasTick;
+
 	Tick sdrrTick;//soft drop repeat rate
+
+	bool gameUpdateFlag = false;
+	bool inputFlag = false;
+	bool runInput = false;
+
+
+	bool leftArrFlag = false;
+	bool leftDasFlag = false;
+	bool rightArrFlag = false;
+	bool rightDasFlag = false;
+
+
+	bool sdrrFlag = false;
+
+	thread updateInputThread;
+
+	condition_variable gameUpdateCV;
+	condition_variable inputCV;
+
 
 #pragma region Move
 	void MoveLeft();
@@ -65,6 +94,10 @@ private:
 	void HardDrop();
 	void TryGravityDrop();
 	bool TrySpawn();
+	/// <summary>
+	/// must called by gameLoop
+	/// not the blockLoop
+	/// </summary>
 	void TryHold();
 #pragma endregion
 
@@ -77,12 +110,17 @@ private:
 #pragma region DrawDeleteETC
 	void gotoxy(short x, short y);
 	void UpdateBlockOnMap();
-	void DrawMap();
+	void ReDrawBlock();
 	void DrawBorder();
 	void DrawInfo();
 	void DrawQueueBlocks();
 	void Pause();
 #pragma endregion
+
+	
+
+
+
 
 	int ClearLine();
 	void appendLine(int _y);
@@ -96,13 +134,10 @@ private:
 	StateChanges GetStateChanges(BlockState currentState, BlockState newState);
 	void FormToOffset(int minoForm[4][4], int outMoniOffset[4][2]);
 
-	void LoopUpdateInput(bool* _run, condition_variable * cv, bool* ready);
+	void LoopUpdateInput(bool* run, bool* ready);
+	void CloseLoopUpdateInput(bool* run);
 	void UpdateKeyState(KeyState* _state, const int& keyCode);
 
 
 	void Init(HANDLE& _handle, HWND& _hwnd);
 };
-
-
-
-

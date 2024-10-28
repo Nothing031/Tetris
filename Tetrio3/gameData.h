@@ -1,8 +1,13 @@
 // EUC-KR cp949 encoding
 #pragma once
-#define MAP_BLOCK "■"
-#define MAP_VOID "□"
-#define MAP_PREDICTED "▧"
+//#define MAP_BLOCK "■"
+//#define MAP_VOID "□"
+//#define MAP_PREDICTED "▧"
+
+constexpr wchar_t MAP_BLOCK = L'■';
+constexpr wchar_t MAP_VOID = L'□';
+constexpr wchar_t MAP_PREDICTED = L'▧';
+
 
 #define MAP_WIDTH 10
 #define MAP_HEIGHT 24
@@ -67,7 +72,12 @@ enum MinoType : int {
     Mino_T = Color::Magenta
 };
 
-
+struct CpySize {
+    static constexpr size_t offset = sizeof(int) * 4 * 2;
+    static constexpr size_t form = sizeof(int) * 4 * 4;
+    static constexpr size_t map = sizeof(int) * MAP_WIDTH     * MAP_HEIGHT;
+    static constexpr size_t checkList = sizeof(int) * 5 * 2;
+};
 
 struct Offsets{
     static const int MAP_X = 6;
@@ -118,8 +128,7 @@ struct InputKeySetting {
 struct Handling {
     static int ARR;
     static int DAS;
-    static int DCS;
-    static int SDF;
+    static int SDRR;
 };
 
 

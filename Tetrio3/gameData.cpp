@@ -19,6 +19,6 @@ int InputKeySetting::Hold = 0x43;
 int InputKeySetting::SoftDrop = 0x28;
 int InputKeySetting::HardDrop = 0x20;
 
-int Handling::ARR = 10;
-int Handling::DAS = 1;
-int Handling::SDF = 10;
+int Handling::ARR = 40;
+int Handling::DAS = 160;
+int Handling::SDRR = 10;
