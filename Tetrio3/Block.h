@@ -46,8 +46,8 @@ public:
         return *this;
     }
 
+private:
     void Init(MinoType initType);
-
 };
 
 

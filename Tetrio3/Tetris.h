@@ -6,6 +6,8 @@
 #include <random>
 #include <queue>
 #include <algorithm>
+#include <condition_variable>
+#include <mutex>
 #include "Tick.h"
 #include "Block.h"
 #include "gameData.h"
@@ -15,6 +17,13 @@ using namespace std;
 class Tetris
 {
 public:
+	Tetris(HANDLE& _handle, HWND& hwnd) {
+		Init(_handle, hwnd);
+	}
+	~Tetris() {
+
+	}
+
 	void gameLoopInfinity();
 
 private:
@@ -28,13 +37,19 @@ private:
 	int gameMap[24][10];
 	int mapExceptBlock[24][10];
 
-	HANDLE handle = NULL;
-	HWND hwnd = NULL;
+	HANDLE handle;
+	HWND hwnd;
 
 	random_device rd;
 	mt19937 gen;
 
 	BlockState blockLoop();
+
+	Tick gameTick;
+	Tick inputTick;
+	Tick arrTick;
+	Tick dasTick;
+	Tick sdrrTick;//soft drop repeat rate
 
 #pragma region Move
 	void MoveLeft();
@@ -48,9 +63,12 @@ private:
 #pragma endregion
 #pragma region ETC
 	void HardDrop();
+	void TryGravityDrop();
+	bool TrySpawn();
+	void TryHold();
 #pragma endregion
 
-	void TryHold();
+
 #pragma region Collision check
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
@@ -78,18 +96,11 @@ private:
 	StateChanges GetStateChanges(BlockState currentState, BlockState newState);
 	void FormToOffset(int minoForm[4][4], int outMoniOffset[4][2]);
 
-	void LoopReadKeyboardState(bool* _run);
+	void LoopUpdateInput(bool* _run, condition_variable * cv, bool* ready);
+	void UpdateKeyState(KeyState* _state, const int& keyCode);
 
-	void ReadKeyState(KeyState* _state, const int& keyCode);
 
-
-	Tetris(HANDLE handle, HWND hwnd) {
-		Init(handle, hwnd);
-	}
-	~Tetris() {
-
-	}
-	void Init(HANDLE _handle, HWND _hwnd);
+	void Init(HANDLE& _handle, HWND& _hwnd);
 };
 
 

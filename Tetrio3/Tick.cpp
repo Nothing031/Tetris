@@ -1,15 +1,28 @@
 #include "Tick.h"
 
 
-Tick::Tick(int interval, bool* flag, bool* flag2)
+Tick::Tick() {
+    this->_interval = 1000000;
+    this->tickCount = 0;
+    this->running = false;
+    this->_externalFlag = nullptr;
+    this->externalCV = nullptr;
+}
+Tick::Tick(const Tick& other) {
+    this->_interval = other._interval;
+    this->tickCount = other.tickCount;
+    this->running = other.running;
+    this->_externalFlag = other._externalFlag;
+    this->externalCV = other.externalCV;
+}
+Tick::Tick(int interval, bool* flag, std::condition_variable* cv)
 {
     this->_interval = interval;
     this->tickCount = 0;
     this->running = false;
     this->_externalFlag = flag;
-    this->_externalFlag2 = flag2;
+    this->externalCV = cv;
 }
-
 Tick::~Tick()
 {
     this->Stop();
@@ -36,7 +49,7 @@ void Tick::Thread() {
         if (now - start >= this->_interval) {
             if (running) {
                 *this->_externalFlag = true;
-                *this->_externalFlag2 = true;
+                this->externalCV->notify_one();
             }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));

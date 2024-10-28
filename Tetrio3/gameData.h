@@ -25,7 +25,6 @@ enum Color : int {
     Yellow,
     White
 };
-
 enum StateChanges : int {
     S_to_R,
     R_to_S,
@@ -47,7 +46,6 @@ enum StateChanges : int {
 
     Default
 };
-
 enum BlockState : int {
     S = 0, //spawn state
     R = 1, //right spin from first state
@@ -55,25 +53,7 @@ enum BlockState : int {
     L = 3, //left spin from first state
     Q = 4, //block is in queue
     Droped = 5,  //block has been stucked in bottom
-    Running = 6,
-    Hold = 7
-};
-
-enum KeyState : int {
-    Released = 0,
-    Pressing = 1,
-    Pressed = 2
-};
-
-struct KeyboardState {
-    static KeyState SpinLeft;
-    static KeyState SpinRight;
-    static KeyState SpinFlip;
-    static KeyState Hold;
-    static KeyState HardDrop;
-    static KeyState ArrowLeft;
-    static KeyState ArrowRight;
-    static KeyState SoftDrop;
+    Hold = 6
 };
 
 enum MinoType : int {
@@ -84,29 +64,57 @@ enum MinoType : int {
     Mino_S = Color::Green,
     Mino_J = Color::DarkBlue,
     Mino_L = Color::DarkYellow,
-    Mino_T = Color::Magenta,
+    Mino_T = Color::Magenta
 };
-static int minoList[7] = { Mino_I, Mino_O, Mino_Z, Mino_S, Mino_J, Mino_L, Mino_T };
 
-struct {
-    const int MAP_X = 6;
-    const int MAP_Y = 0;
-    const int MINO_SPAWN_X = 3;
-    const int MINO_SPAWN_Y = 0;
-}offsets;
 
+
+struct Offsets{
+    static const int MAP_X = 6;
+    static const int MAP_Y = 0;
+    static const int MINO_SPAWN_X = 3;
+    static const int MINO_SPAWN_Y = 0;
+};
+
+
+// key
+
+enum KeyState : int {
+    Released = 0,
+    Pressing = 1,
+    Pressed = 2
+};
 enum InputKey : int {
     K_Null,
-    K_Arrow_Left,
-    K_Arrow_Right,
-    K_SoftDrop,
-    K_HardDrop,
+    K_ArrowLeft,
+    K_ArrowRight,
     K_SpinLeft,
     K_SpinRight,
     K_SpinFilp,
+    K_SoftDrop,
+    K_HardDrop,
     K_Hold
 };
-
+struct KeyboardState {
+    static KeyState ArrowLeft;
+    static KeyState ArrowRight;
+    static KeyState SpinLeft;
+    static KeyState SpinRight;
+    static KeyState SpinFlip;
+    static KeyState SoftDrop;
+    static KeyState HardDrop;
+    static KeyState Hold;
+};
+struct InputKeySetting {
+    static int ArrowLeft;
+    static int ArrowRight;
+    static int SpinLeft;
+    static int SpinRight;
+    static int SpinFilp;
+    static int SoftDrop;
+    static int HardDrop;
+    static int Hold;
+};
 struct Handling {
     static int ARR;
     static int DAS;
@@ -114,16 +122,6 @@ struct Handling {
     static int SDF;
 };
 
-struct InputKeyNums {
-    static int A_Left;
-    static int A_Right;
-    static int SoftDrop;
-    static int HardDrop;
-    static int SpinLeft;
-    static int SpinRight;
-    static int SpinFilp;
-    static int Hold;
-};
 
 struct CheckList_SRS {
     struct JLSTZ { // [CheckList][XY];
@@ -184,7 +182,7 @@ struct CheckList_SRS {
             {+1, -2}
         };
     };
-    static struct I {
+    struct I {
         static constexpr int S_to_R[5][2] = {
             {0, 0},
             {-2, 0},
@@ -243,7 +241,6 @@ struct CheckList_SRS {
         };
     };
 };
-
 struct MinoForms// [state][y][x] 
 {
     static constexpr int Mino_O[4][4][4] = {
@@ -430,3 +427,4 @@ struct MinoForms// [state][y][x]
     };
 };
 
+static int minoList[7] = { Mino_I, Mino_O, Mino_Z, Mino_S, Mino_J, Mino_L, Mino_T };

@@ -5,18 +5,29 @@
 void Tetris::gameLoopInfinity()
 {
     DrawBorder();
+    bool t_runFlag = true;
+    thread t_UpdateInput(&Tetris::LoopUpdateInput, this, &t_runFlag);
 
     // full game loop
     while (true) {
+        // refill block
         while (this->nextBlockQueue.size() < 7) {
             this->nextBlockQueue.push(GetRandomMino());
         }
-
+        // set currnet block
         this->CurrentBlock = nextBlockQueue.front();
         nextBlockQueue.pop();
-
+        
+        // try spawn
+        if (!this->TrySpawn()) {
+            break; //failed
+        }
+        this->UpdateBlockOnMap();
+        this->DrawMap();
+        // run block loop
         BlockState state = this->blockLoop();
 
+        //Hold or pass
         if (state == BlockState::Hold) {
             this->TryHold();
             // reset gameMap to previuse map;
@@ -31,16 +42,21 @@ void Tetris::gameLoopInfinity()
         }
     }
 
-
-
-
-
-
-
+    // stop thread
+    t_runFlag = false;
+    if (t_UpdateInput.joinable()) {
+        t_UpdateInput.join();
+    }
 }
 
 BlockState Tetris::blockLoop()
 {
+    
+
+
+
+
+
 
 
 
@@ -50,7 +66,7 @@ BlockState Tetris::blockLoop()
 
 
 
-void Tetris::Init(HANDLE _handle, HWND _hwnd)
+void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
 {
 	this->gen = mt19937(rd());
 	this->handle = _handle;
@@ -76,9 +92,6 @@ void Tetris::Init(HANDLE _handle, HWND _hwnd)
     for (int i = 0; i < 7; i++) {
         this->nextBlockQueue.push(GetRandomMino());
     }
-    this->CurrentBlock = this->nextBlockQueue.front();
-    this->nextBlockQueue.pop();
-
     this->HoldBlock = Block(MinoType::Mino_NULL);
     this->BlockNextHold = false;
 #pragma endregion
@@ -201,14 +214,46 @@ void Tetris::HardDrop()
     this->CurrentBlock.pos.Y = this->CurrentBlock.predictedPos.Y;
     this->CurrentBlock.state = BlockState::Droped;
 }
-#pragma endregion
+void Tetris::TryGravityDrop()
+{
+    COORD tempPos = this->CurrentBlock.pos;
+    tempPos.Y++;
+    if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+        this->CurrentBlock.pos = tempPos;
+    }
+}
+bool Tetris::TrySpawn()
+{
+    // set offset
+    this->FormToOffset(this->CurrentBlock.minoForm_All[BlockState::S], this->CurrentBlock.minoOffset);
 
+    // set spawn point
+    if (this->CurrentBlock.type == MinoType::Mino_O) {
+        this->CurrentBlock.pos = { 4, 1 };
+    }
+    else {
+        this->CurrentBlock.pos = { 3, 1 };
+    }
+    // set predicted pos
+    this->CalculatePredictedPos();
+
+    // set state
+    this->CurrentBlock.state = BlockState::S;
+
+    // collision check
+    if (CollisionCheck(this->CurrentBlock.minoOffset, this->CurrentBlock.pos)) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
 void Tetris::TryHold()
 {
     this->CurrentBlock.state = BlockState::Hold;
     if (!this->BlockNextHold) {
         this->BlockNextHold = true;
-        
+
         if (HoldBlock.type == MinoType::Mino_NULL) {
             this->HoldBlock = this->CurrentBlock;
         }
@@ -227,6 +272,9 @@ void Tetris::TryHold()
         return;
     }
 }
+#pragma endregion
+
+
 
 
 #pragma region Draw on/Delete from map
@@ -266,7 +314,7 @@ void Tetris::DrawMap() {
             int block = gameMap[y][x];
             if (block == -1)
                 block = Color::DarkGray;
-            gotoxy((x + offsets.MAP_X) * 2, y + offsets.MAP_Y);
+            gotoxy((x + Offsets::MAP_X) * 2, y + Offsets::MAP_Y);
             SetConsoleTextAttribute(handle, block);
             if (block != Color::Black && block != Color::DarkGray)
                 std::cout << MAP_BLOCK;
@@ -472,31 +520,28 @@ bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges ch
     return false;
 }
 #pragma endregion
-
 #pragma region ReadKey
-/// <summary>
-/// 125hz pollingRate
-/// </summary>
-/// <param name="run flag"></param>
-void LoopUpdateInput(bool* _run)
+void Tetris::LoopUpdateInput(bool* _run, condition_variable* cv, bool* ready)
 {
+    mutex m;
+    unique_lock<mutex> lock(m);
     while (*_run) {
+        cv->wait(lock, [&ready] {return ready; });
+        *ready = false;
         // move
-        UpdateKeyState(&KeyboardState::ArrowRight, InputKeyNums::A_Right);
-        UpdateKeyState(&KeyboardState::ArrowLeft, InputKeyNums::A_Left);
-        UpdateKeyState(&KeyboardState::SoftDrop, InputKeyNums::SoftDrop);
+        UpdateKeyState(&KeyboardState::ArrowRight, InputKeySetting::ArrowRight);
+        UpdateKeyState(&KeyboardState::ArrowLeft, InputKeySetting::ArrowLeft);
+        UpdateKeyState(&KeyboardState::SoftDrop, InputKeySetting::SoftDrop);
         // spin
-        UpdateKeyState(&KeyboardState::SpinRight, InputKeyNums::SpinRight);
-        UpdateKeyState(&KeyboardState::SpinLeft, InputKeyNums::SpinLeft);
-        UpdateKeyState(&KeyboardState::SpinFlip, InputKeyNums::SpinFilp);
+        UpdateKeyState(&KeyboardState::SpinRight, InputKeySetting::SpinRight);
+        UpdateKeyState(&KeyboardState::SpinLeft, InputKeySetting::SpinLeft);
+        UpdateKeyState(&KeyboardState::SpinFlip, InputKeySetting::SpinFilp);
         // etc command
-        UpdateKeyState(&KeyboardState::Hold, InputKeyNums::Hold);
-        UpdateKeyState(&KeyboardState::HardDrop, InputKeyNums::HardDrop);
-        this_thread::sleep_for(chrono::milliseconds(8));
+        UpdateKeyState(&KeyboardState::Hold, InputKeySetting::Hold);
+        UpdateKeyState(&KeyboardState::HardDrop, InputKeySetting::HardDrop);
     }
 }
-
-void UpdateKeyState(KeyState* _state, const int& keyCode)
+void Tetris::UpdateKeyState(KeyState* _state, const int& keyCode)
 {
     int _input = (GetAsyncKeyState(keyCode) & 0x8000);
     if (_input && *_state != KeyState::Pressed)

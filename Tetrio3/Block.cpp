@@ -1,6 +1,4 @@
-
 #include "Block.h"
-
 
 void Block::Init(MinoType initType) {
     this->type = initType;
@@ -19,17 +17,6 @@ void Block::Init(MinoType initType) {
     case MinoType::Mino_S: memcpy(this->minoForm_All, MinoForms::Mino_S, cpySize); break;
     case MinoType::Mino_T: memcpy(this->minoForm_All, MinoForms::Mino_T, cpySize); break;
     case MinoType::Mino_Z: memcpy(this->minoForm_All, MinoForms::Mino_Z, cpySize); break;
-    }
-    // mino offset
-    int count = 0;
-    for (int y = 0; y < 4; y++) {
-        for (int x = 0; x < 4; x++) {
-            if (this->minoForm_All[BlockState::S][y][x] != 0) {
-                this->minoOffset[count][0] = x;
-                this->minoOffset[count][1] = y;
-                count++;
-            }
-        }
     }
 }
 
