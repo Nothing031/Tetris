@@ -21,9 +21,6 @@
     <ClCompile Include="Block.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Tick.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="gameData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -38,14 +35,11 @@
     <ClInclude Include="gameData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tick.h">
+    <ClInclude Include="Tick.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Tetris.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
   </ItemGroup>
 </Project>

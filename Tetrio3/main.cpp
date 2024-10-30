@@ -2,7 +2,6 @@
 #define NOMINMAX
 #include "Block.h"
 #include "gameData.h"
-#include "Tick.h"
 #include "Tetris.h"
 
 #include <Windows.h>

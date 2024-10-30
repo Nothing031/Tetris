@@ -42,11 +42,15 @@ void Tetris::gameLoopInfinity()
             this->ReDrawBlock();
             continue;
         }
-        else{
-            this->UpdateBlockOnMap();
-            this->ReDrawBlock();
-            continue;
-        }
+        
+        memcpy(gameMap, mapExceptBlock, CpySize::map);
+        this->UpdateBlockOnMap();
+        this->ReDrawBlock();
+        continue;
+        
+
+
+
     }
 
     // stop inputTick
@@ -56,8 +60,6 @@ void Tetris::gameLoopInfinity()
 
 BlockState Tetris::blockLoop()
 {
-    int fpscount = 0;
-     
     bool* pFlag = &this->gameUpdateFlag;
     gameUpdateTick.Start();
 
@@ -181,8 +183,6 @@ BlockState Tetris::blockLoop()
         } 
 #pragma endregion
 
-
-        
         this->CalculatePredictedPos();
         this->UpdateBlockOnMap();
         this->ReDrawBlock();
@@ -193,23 +193,21 @@ BlockState Tetris::blockLoop()
     return BlockState();
 }
 
-
-
-
 void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
 {
 	this->gen = mt19937(rd());
 	this->handle = _handle;
 	this->hwnd = _hwnd;
-#pragma region Init Map
+
+    // init map
     for (int i = 0; i < MAP_HEIGHT; i++) {
         for (int j = 0; j < MAP_WIDTH; j++) {
             gameMap[i][j] = Color::Black;
         }
     }
     memcpy(mapExceptBlock, gameMap, CpySize::map);
-#pragma endregion
-#pragma region Init MinoBag
+
+    //init minobag
     this->minoBag[0] = MinoType::Mino_I;
     this->minoBag[1] = MinoType::Mino_J;
     this->minoBag[2] = MinoType::Mino_L;
@@ -217,35 +215,24 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     this->minoBag[4] = MinoType::Mino_S;
     this->minoBag[5] = MinoType::Mino_Z;
     this->minoBag[6] = MinoType::Mino_T;
-#pragma endregion
-#pragma region Init ETC
+
+    // init etc
     for (int i = 0; i < 7; i++) {
         this->nextBlockQueue.push(GetRandomMino());
     }
     this->HoldBlock = Block(MinoType::Mino_NULL);
     this->BlockNextHold = false;
-#pragma endregion
-#pragma region Init Tick
-    this->gameUpdateTick = Tick(10, &this->gameUpdateFlag, &this->gameUpdateCV);
-    this->inputTick = Tick(10, &this->inputFlag, &this->inputCV);
 
-    this->leftArrTick = Tick(Handling::ARR, &this->leftArrFlag);
-    this->leftDasTick = Tick(Handling::DAS, &this->leftDasFlag);
-
-    this->rightArrTick = Tick(Handling::ARR, &this->rightArrFlag);
-    this->rightDasTick = Tick(Handling::DAS, &this->rightDasFlag);
-
-    this->sdrrTick = Tick(Handling::SDRR, &this->sdrrFlag);
-#pragma endregion
-
-    
-
-
-
-
+    // init tick
+    this->gameUpdateTick = Tick(10, &this->gameUpdateCV, &this->gameUpdateFlag,  nullptr);
+    this->inputTick = Tick(10, &this->inputCV, &this->inputFlag, nullptr);
+    this->leftArrTick = Tick(Handling::ARR, nullptr, &this->leftArrFlag, nullptr);
+    this->leftDasTick = Tick(Handling::DAS, nullptr, &this->leftDasFlag, nullptr);
+    this->rightArrTick = Tick(Handling::ARR, nullptr, &this->rightArrFlag, nullptr);
+    this->rightDasTick = Tick(Handling::DAS, nullptr, &this->rightDasFlag, nullptr);
+    this->sdrrTick = Tick(Handling::SDRR, nullptr, &this->sdrrFlag, nullptr);
 }
 
-#pragma region Move
 void Tetris::MoveLeft() {
     COORD tempPos = this->CurrentBlock.pos;
     tempPos.X--;
@@ -269,8 +256,6 @@ void Tetris::SoftDrop() {
         this->CurrentBlock.pos.Y++;
     }
 }
-#pragma endregion
-#pragma region Spin
 void Tetris::SpinLeft()
 {
     BlockState tempState;
@@ -352,8 +337,6 @@ void Tetris::Flip()
         this->CurrentBlock.state = tempState;
     }
 }
-#pragma endregion
-#pragma region ETC
 void Tetris::HardDrop()
 {
     this->CurrentBlock.pos.Y = this->CurrentBlock.predictedPos.Y;
@@ -417,10 +400,8 @@ void Tetris::TryHold()
         return;
     }
 }
-#pragma endregion
 
 
-#pragma region Draw on/Delete from map
 void Tetris::gotoxy(short x, short y) {
     COORD _pos = { x, y };
     SetConsoleCursorPosition(this->handle, _pos);
@@ -589,13 +570,12 @@ void Tetris::DrawQueueBlocks()
         }
     }
 }
-
 void Tetris::Pause()
 {
 
 }
 
-#pragma endregion
+
 
 int Tetris::ClearLine()
 {
@@ -623,9 +603,8 @@ void Tetris::appendLine(int _y)
     }
 }
 
-#pragma region Collision check
 bool Tetris::CollisionCheck(int tempOffset[4][2], COORD tempPos){
-#pragma region MapEscapeCheck
+    // map collision check
     int _0x = tempOffset[0][0] + tempPos.X;
     int _1x = tempOffset[1][0] + tempPos.X;
     int _2x = tempOffset[2][0] + tempPos.X;
@@ -640,17 +619,16 @@ bool Tetris::CollisionCheck(int tempOffset[4][2], COORD tempPos){
     int _minX = std::min({ _0x, _1x, _2x, _3x });
     int _maxY = std::max({ _0y, _1y, _2y, _3y });
     int _minY = std::min({ _0y, _1y, _2y, _3y });
-    if (_maxX > 9 || _minX < 0 || _maxY > 23 || _minY < 0)
+    if (_maxX > MAP_WIDTH -1 || _minX < 0 || _maxY > MAP_HEIGHT - 1 || _minY < 0)
         return false;
-#pragma endregion
-#pragma region block collsion check
+    
+    // block collision check
     for (int i = 0; i < 4; i++) {
         int x = tempOffset[i][0] + tempPos.X;
         int y = tempOffset[i][1] + tempPos.Y;
         if (mapExceptBlock[y][x] != Color::Black && mapExceptBlock[y][x] != Color::DarkGray) // block collision!!
             return false;
     }
-#pragma endregion
     return true;
 }
 bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes)
@@ -671,7 +649,7 @@ bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges ch
     }
     return false;
 }
-#pragma endregion
+
 
 /// <summary>
 /// must notify one after close runflag
@@ -717,9 +695,6 @@ void Tetris::UpdateKeyState(KeyState* _state, const int& keyCode)
     else
         *_state = KeyState::Released;
 }
-
-
-
 
 void Tetris::CalculatePredictedPos()
 {

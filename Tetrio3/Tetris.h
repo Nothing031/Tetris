@@ -8,9 +8,9 @@
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
-#include "Tick.h"
 #include "Block.h"
 #include "gameData.h"
+#include "Tick.hpp"
 
 using namespace std;
 
@@ -80,17 +80,12 @@ private:
 	condition_variable inputCV;
 
 
-#pragma region Move
 	void MoveLeft();
 	void MoveRight();
 	void SoftDrop();
-#pragma endregion
-#pragma region Spin
 	void SpinLeft();
 	void SpinRight();
 	void Flip();
-#pragma endregion
-#pragma region ETC
 	void HardDrop();
 	void TryGravityDrop();
 	bool TrySpawn();
@@ -99,15 +94,11 @@ private:
 	/// not the blockLoop
 	/// </summary>
 	void TryHold();
-#pragma endregion
 
 
-#pragma region Collision check
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
-#pragma endregion
 
-#pragma region DrawDeleteETC
 	void gotoxy(short x, short y);
 	void UpdateBlockOnMap();
 	void ReDrawBlock();
@@ -115,7 +106,6 @@ private:
 	void DrawInfo();
 	void DrawQueueBlocks();
 	void Pause();
-#pragma endregion
 
 	
 
