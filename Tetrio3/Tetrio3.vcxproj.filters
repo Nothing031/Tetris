@@ -15,30 +15,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Block.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="gameData.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Tetris.cpp">
+    <ClCompile Include="src\Tetris.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Block.h">
+    <ClInclude Include="src\Block.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gameData.h">
+    <ClInclude Include="src\gameData.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tick.hpp">
+    <ClInclude Include="src\Tick.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Tetris.h">
+    <ClInclude Include="src\Tetris.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <condition_variable>
 #include <mutex>
+
 #include "Block.h"
 #include "gameData.h"
 #include "Tick.hpp"
@@ -33,15 +34,11 @@ private:
 	Block HoldBlock;
 	bool BlockNextHold;
 
-	MinoType minoBag[7];
+	EMino minoBag[7];
 	int minoBagNum = 0;
 	int gameMap[MAP_HEIGHT][MAP_WIDTH];
 	int prevGameMap[MAP_HEIGHT][MAP_WIDTH];
 	int mapExceptBlock[MAP_HEIGHT][MAP_WIDTH];
-
-	int prevOffset[4][2];
-	COORD prevPos;
-	COORD prevPredictedPos;
 
 	HANDLE handle;
 	HWND hwnd;
@@ -53,25 +50,29 @@ private:
 
 	// tick
 	Tick gameUpdateTick;
+	bool gameUpdateFlag = false;
+
+	Tick gravityTick;
+	bool gravityFlag = false;
+
+	Tick forceDropTick;
+	bool forceDropFlag = false;
+	bool forceDropTicking = false;
+
 	Tick inputTick;
+	bool inputFlag = false;
+	bool runInput = false;
+
 	Tick leftArrTick;
 	Tick leftDasTick;
 	Tick rightArrTick;
 	Tick rightDasTick;
-
-	Tick sdrrTick;//soft drop repeat rate
-
-	bool gameUpdateFlag = false;
-	bool inputFlag = false;
-	bool runInput = false;
-
-
 	bool leftArrFlag = false;
 	bool leftDasFlag = false;
 	bool rightArrFlag = false;
 	bool rightDasFlag = false;
 
-
+	Tick sdrrTick;//soft drop repeat rate
 	bool sdrrFlag = false;
 
 	thread updateInputThread;
@@ -87,7 +88,6 @@ private:
 	void SpinRight();
 	void Flip();
 	void HardDrop();
-	void TryGravityDrop();
 	bool TrySpawn();
 	/// <summary>
 	/// must called by gameLoop
@@ -97,15 +97,20 @@ private:
 
 
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
-	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes);
+	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, EStateChanges changes);
 
 	void gotoxy(short x, short y);
 	void UpdateBlockOnMap();
-	void ReDrawBlock();
+	void Pause();
+
+	void DrawBlock();
+	void DrawWholeMap();
 	void DrawBorder();
 	void DrawInfo();
 	void DrawQueueBlocks();
-	void Pause();
+
+
+	
 
 	
 
@@ -118,14 +123,13 @@ private:
 	Block GetRandomMino();
 
 
-	void CalculatePredictedPos();
+	void CalculateGhostPos();
 
-	void GetCheckList(StateChanges changes, int _derefCheckList[5][2]);
-	StateChanges GetStateChanges(BlockState currentState, BlockState newState);
-	void FormToOffset(int minoForm[4][4], int outMoniOffset[4][2]);
+	EStateChanges GetStateChanges(BlockState currentState, BlockState newState);
+	void FormToOffset(const int minoForm[4][4], int outMoniOffset[4][2]);
 
 	void LoopUpdateInput(bool* run, bool* ready);
-	void CloseLoopUpdateInput(bool* run);
+	void CloseLoopUpdateInput(bool* run, bool* ready);
 	void UpdateKeyState(KeyState* _state, const int& keyCode);
 
 

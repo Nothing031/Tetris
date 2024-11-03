@@ -1,6 +1,17 @@
-#include "Tetris.h"
+#define NOMINMAX
+#include <iostream>
 #include <Windows.h>
-#include <vector>
+#include <chrono>
+#include <random>
+#include <queue>
+#include <algorithm>
+#include <condition_variable>
+#include <mutex>
+
+#include "Tetris.h"
+#include "Block.h"
+#include "gameData.h"
+#include "Tick.hpp"
 
 
 void Tetris::gameLoopInfinity()
@@ -15,7 +26,8 @@ void Tetris::gameLoopInfinity()
     // full game loop
     while (true) {
         memcpy(this->mapExceptBlock, this->gameMap, CpySize::map);
-        memcpy(this->prevGameMap, this->gameMap, CpySize::map);
+
+        this->DrawQueueBlocks();
 
         // refill block
         while (this->nextBlockQueue.size() < 7) {
@@ -27,25 +39,27 @@ void Tetris::gameLoopInfinity()
         
         // try spawn
         if (!this->TrySpawn()) {
+            system("cls");
             break; //failed
         }
-        this->UpdateBlockOnMap();
-        this->ReDrawBlock();
+
+
         // run block loop
         BlockState state = this->blockLoop();
         BlockNextHold = false;
         //Hold or pass
         if (state == BlockState::Hold) {
             this->TryHold();
-            // reset gameMap to previuse map;
-            memcpy(gameMap, mapExceptBlock, CpySize::map);
-            this->ReDrawBlock();
+            this->DrawWholeMap();
+            memcpy(this->gameMap, this->mapExceptBlock, CpySize::map);
             continue;
         }
-        
-        memcpy(gameMap, mapExceptBlock, CpySize::map);
-        this->UpdateBlockOnMap();
-        this->ReDrawBlock();
+
+        ClearLine();
+
+
+        memcpy(mapExceptBlock, gameMap, CpySize::map);
+        this->DrawWholeMap();
         continue;
         
 
@@ -55,29 +69,69 @@ void Tetris::gameLoopInfinity()
 
     // stop inputTick
     this->inputTick.Stop();
-    this->CloseLoopUpdateInput(&this->runInput);
+    this->CloseLoopUpdateInput(&this->runInput, &this->inputFlag);
 }
 
 BlockState Tetris::blockLoop()
 {
+    this->CalculateGhostPos();
+    this->DrawBlock();
     bool* pFlag = &this->gameUpdateFlag;
     gameUpdateTick.Start();
+    gravityTick.Start();
 
     mutex _m;
     unique_lock<mutex> lock(_m);
 
+    BlockState returnState = BlockState::Q;
+    
     while (true) {
-        memcpy(this->prevGameMap, this->gameMap, CpySize::map);
-        memcpy(this->prevOffset, this->CurrentBlock.minoOffset, CpySize::offset);
-        this->prevPos = this->CurrentBlock.pos;
-        this->prevPredictedPos = this->CurrentBlock.predictedPos;
+        memcpy(this->CurrentBlock.prevMinoOffset, this->CurrentBlock.minoOffset, CpySize::offset);
+        this->CurrentBlock.prevPos = this->CurrentBlock.pos;
+        this->CurrentBlock.prevGhostPos = this->CurrentBlock.ghostPos;
 
+        this->gameUpdateCV.wait(lock, [pFlag] {return *pFlag; });
+        this->gameUpdateFlag = false;
+
+        if (this->CurrentBlock.pos.Y == this->CurrentBlock.ghostPos.Y) {
+            if (!forceDropTicking) {
+                forceDropTicking = true;
+                forceDropTick.Start();
+            }
+                
+        }
+        else {
+            forceDropTick.Stop();
+            forceDropFlag = false;
+            forceDropTicking = false;
+        }
+
+        if (forceDropFlag) {
+            this->HardDrop();
+            UpdateBlockOnMap();
+            this->gameUpdateTick.Stop();
+            this->gravityTick.Stop();
+            this->leftArrTick.Stop();
+            this->leftDasTick.Stop();
+            this->rightArrTick.Stop();
+            this->rightDasTick.Stop();
+            this->sdrrTick.Stop();
+            this->forceDropTick.Stop();
+            returnState = BlockState::Droped;
+            break;
+        }
+
+        if (this->gravityFlag) {
+            this->gravityFlag = false;
+            this->SoftDrop();
+        }
         // process input
 #pragma region Move
-        if (KeyboardState::ArrowLeft == KeyState::Pressing) {
+        // left
+        if (Keyboard::ArrowLeft == KeyState::Pressing) {
             this->MoveLeft();
             this->leftDasFlag = false;
-            KeyboardState::ArrowLeft = KeyState::Pressed;
+            Keyboard::ArrowLeft = KeyState::Pressed;
             if (!leftDasTick.running) {
                 this->leftDasTick.Start();
             }
@@ -85,7 +139,7 @@ BlockState Tetris::blockLoop()
                 this->leftArrTick.Start();
             }
         }
-        else if (KeyboardState::ArrowLeft == KeyState::Pressed) {
+        else if (Keyboard::ArrowLeft == KeyState::Pressed) {
             if (this->leftDasFlag && leftArrFlag) {
                 this->leftArrFlag = false;
                 this->MoveLeft();
@@ -98,16 +152,16 @@ BlockState Tetris::blockLoop()
                 this->leftArrTick.Stop();
             }
         }
-
-        if (KeyboardState::ArrowRight == KeyState::Pressing) {
+        // right
+        if (Keyboard::ArrowRight == KeyState::Pressing) {
             this->MoveRight();
             this->rightDasFlag = false;
-            KeyboardState::ArrowRight = KeyState::Pressed;
+            Keyboard::ArrowRight = KeyState::Pressed;
             if (!rightDasTick.running) {
                 this->rightDasTick.Start();
             }
         }
-        else if (KeyboardState::ArrowRight == KeyState::Pressed) {
+        else if (Keyboard::ArrowRight == KeyState::Pressed) {
             if (this->rightDasFlag) {
                 if (!this->rightArrTick.running) this->rightArrTick.Start();
                 if (this->rightArrFlag) {
@@ -124,73 +178,84 @@ BlockState Tetris::blockLoop()
             }
         }
 
-        if (KeyboardState::SoftDrop == KeyState::Pressing) {
-            this->SoftDrop();
-            this->sdrrFlag = false;
-            KeyboardState::SoftDrop = KeyState::Pressed;
-        }
-        else if (KeyboardState::SoftDrop == KeyState::Pressed) {
-            if (!this->sdrrTick.running) this->sdrrTick.Start();
-            if (this->sdrrFlag) {
-                this->sdrrFlag = false;
-                this->SoftDrop();
+        // softdrop
+        if (Handling::SDRR == 0) {
+            if (Keyboard::Keyboard::SoftDrop == KeyState::Pressing) {
+                this->CurrentBlock.pos = this->CurrentBlock.ghostPos;
             }
         }
         else {
-            if (sdrrFlag || sdrrTick.running) {
+            if (Keyboard::SoftDrop == KeyState::Pressing) {
+                this->SoftDrop();
                 this->sdrrFlag = false;
-                this->sdrrTick.Stop();
+                Keyboard::SoftDrop = KeyState::Pressed;
+            }
+            else if (Keyboard::SoftDrop == KeyState::Pressed) {
+                if (!this->sdrrTick.running) this->sdrrTick.Start();
+                if (this->sdrrFlag) {
+                    this->sdrrFlag = false;
+                    this->SoftDrop();
+                }
+            }
+            else {
+                if (sdrrFlag || sdrrTick.running) {
+                    this->sdrrFlag = false;
+                    this->sdrrTick.Stop();
+                }
             }
         }
+
 #pragma endregion
 #pragma region Spin
-        if (KeyboardState::SpinLeft == KeyState::Pressing) {
-            KeyboardState::SpinLeft = KeyState::Pressed;
+        if (Keyboard::SpinLeft == KeyState::Pressing) {
+            Keyboard::SpinLeft = KeyState::Pressed;
             this->SpinLeft();
         }
-        if (KeyboardState::SpinRight == KeyState::Pressing) {
-            KeyboardState::SpinRight = KeyState::Pressed;
+        if (Keyboard::SpinRight == KeyState::Pressing) {
+            Keyboard::SpinRight = KeyState::Pressed;
             this->SpinRight();
         }
-        if (KeyboardState::SpinFlip == KeyState::Pressing) {
-            KeyboardState::SpinFlip = KeyState::Pressed;
+        if (Keyboard::SpinFlip == KeyState::Pressing) {
+            Keyboard::SpinFlip = KeyState::Pressed;
             this->Flip();
         }
 #pragma endregion
 #pragma region ETC
-        if (KeyboardState::HardDrop == KeyState::Pressing) {
-            KeyboardState::HardDrop = KeyState::Pressed;
+        if (Keyboard::HardDrop == KeyState::Pressing) {
+            Keyboard::HardDrop = KeyState::Pressed;
             this->HardDrop();
             UpdateBlockOnMap();
             this->gameUpdateTick.Stop();
+            this->gravityTick.Stop();
             this->leftArrTick.Stop();
             this->leftDasTick.Stop();
             this->rightArrTick.Stop();
-            this->rightDasTick.Start();
+            this->rightDasTick.Stop();
             this->sdrrTick.Stop();
-            return BlockState::Droped;
+            this->forceDropTick.Stop();
+            returnState =  BlockState::Droped;
+            break;
         }
-        if (KeyboardState::Hold == KeyState::Pressing) {
+        if (Keyboard::Hold == KeyState::Pressing) {
             if (!BlockNextHold) {
                 this->gameUpdateTick.Stop();
+                this->gravityTick.Stop();
                 this->leftArrTick.Stop();
                 this->leftDasTick.Stop();
                 this->rightArrTick.Stop();
-                this->rightDasTick.Start();
+                this->rightDasTick.Stop();
                 this->sdrrTick.Stop();
-                return BlockState::Hold;
+                this->forceDropTick.Stop();
+                returnState = BlockState::Hold;
+                break;
             }
         } 
 #pragma endregion
-
-        this->CalculatePredictedPos();
         this->UpdateBlockOnMap();
-        this->ReDrawBlock();
+        this->DrawBlock();
     }
-
-
-
-    return BlockState();
+    UpdateBlockOnMap();
+    return returnState;
 }
 
 void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
@@ -208,24 +273,26 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     memcpy(mapExceptBlock, gameMap, CpySize::map);
 
     //init minobag
-    this->minoBag[0] = MinoType::Mino_I;
-    this->minoBag[1] = MinoType::Mino_J;
-    this->minoBag[2] = MinoType::Mino_L;
-    this->minoBag[3] = MinoType::Mino_O;
-    this->minoBag[4] = MinoType::Mino_S;
-    this->minoBag[5] = MinoType::Mino_Z;
-    this->minoBag[6] = MinoType::Mino_T;
+    this->minoBag[0] = EMino::I_MINO;
+    this->minoBag[1] = EMino::O_MINO;
+    this->minoBag[2] = EMino::J_MINO;
+    this->minoBag[3] = EMino::L_MINO;
+    this->minoBag[4] = EMino::S_MINO;
+    this->minoBag[5] = EMino::T_MINO;
+    this->minoBag[6] = EMino::Z_MINO;
 
     // init etc
     for (int i = 0; i < 7; i++) {
         this->nextBlockQueue.push(GetRandomMino());
     }
-    this->HoldBlock = Block(MinoType::Mino_NULL);
+    this->HoldBlock = Block(EMino::NULL_MINO);
     this->BlockNextHold = false;
 
     // init tick
     this->gameUpdateTick = Tick(10, &this->gameUpdateCV, &this->gameUpdateFlag,  nullptr);
+    this->forceDropTick = Tick(2000, nullptr, &this->forceDropFlag, nullptr);
     this->inputTick = Tick(10, &this->inputCV, &this->inputFlag, nullptr);
+    this->gravityTick = Tick(1000, nullptr, &this->gravityFlag, nullptr);
     this->leftArrTick = Tick(Handling::ARR, nullptr, &this->leftArrFlag, nullptr);
     this->leftDasTick = Tick(Handling::DAS, nullptr, &this->leftDasFlag, nullptr);
     this->rightArrTick = Tick(Handling::ARR, nullptr, &this->rightArrFlag, nullptr);
@@ -233,12 +300,26 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     this->sdrrTick = Tick(Handling::SDRR, nullptr, &this->sdrrFlag, nullptr);
 }
 
+
+
+void Tetris::CalculateGhostPos()
+{
+    COORD tempPos = this->CurrentBlock.pos;
+    for (int y = this->CurrentBlock.pos.Y; y < 24; y++) {
+        tempPos.Y++;
+        if (!CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
+            tempPos.Y--;
+            this->CurrentBlock.ghostPos = tempPos;
+            return;
+        }
+    }
+}
 void Tetris::MoveLeft() {
     COORD tempPos = this->CurrentBlock.pos;
     tempPos.X--;
     if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
         this->CurrentBlock.pos.X--;
-        Tetris::CalculatePredictedPos();
+        Tetris::CalculateGhostPos();
     }
 }
 void Tetris::MoveRight() {
@@ -246,7 +327,7 @@ void Tetris::MoveRight() {
     tempPos.X++;
     if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
         this->CurrentBlock.pos.X++;
-        Tetris::CalculatePredictedPos();
+        Tetris::CalculateGhostPos();
     }
 }
 void Tetris::SoftDrop() {
@@ -259,7 +340,7 @@ void Tetris::SoftDrop() {
 void Tetris::SpinLeft()
 {
     BlockState tempState;
-    StateChanges changes;
+    EStateChanges changes;
     COORD tempPos = this->CurrentBlock.pos;
     int tempForm[4][4];
     int tempOffset[4][2];
@@ -272,7 +353,7 @@ void Tetris::SpinLeft()
 
     // get spined mino form
     if (BlockState::S <= tempState && tempState < BlockState::Q)
-        memcpy(tempForm, this->CurrentBlock.minoForm_All[tempState], CpySize::form);
+        memcpy(tempForm, MinoForms[this->CurrentBlock.minoType][tempState], CpySize::form);
     else
         throw new exception("WTFFFF");
     Tetris::FormToOffset(tempForm, tempOffset);
@@ -281,12 +362,13 @@ void Tetris::SpinLeft()
         memcpy(this->CurrentBlock.minoOffset, tempOffset, CpySize::offset);
         this->CurrentBlock.pos = tempPos;
         this->CurrentBlock.state = tempState;
+        this->CalculateGhostPos();
     }
 }
 void Tetris::SpinRight()
 {
     BlockState tempState;
-    StateChanges changes;
+    EStateChanges changes;
     COORD tempPos = this->CurrentBlock.pos;
     int tempForm[4][4];
     int tempOffset[4][2];
@@ -299,7 +381,7 @@ void Tetris::SpinRight()
 
     // get spined mino form
     if (BlockState::S <= tempState && tempState < BlockState::Q)
-        memcpy(tempForm, this->CurrentBlock.minoForm_All[tempState], CpySize::form);
+        memcpy(tempForm, MinoForms[this->CurrentBlock.minoType][tempState], CpySize::form);
     else
         throw new exception("WTFFFF");
     Tetris::FormToOffset(tempForm, tempOffset);
@@ -308,12 +390,13 @@ void Tetris::SpinRight()
         memcpy(this->CurrentBlock.minoOffset, tempOffset, CpySize::offset);
         this->CurrentBlock.pos = tempPos;
         this->CurrentBlock.state = tempState;
+        this->CalculateGhostPos();
     }
 }
 void Tetris::Flip()
 {
     BlockState tempState;
-    StateChanges changes;
+    EStateChanges changes;
     COORD tempPos = this->CurrentBlock.pos;
     int tempForm[4][4];
     int tempOffset[4][2];
@@ -326,7 +409,7 @@ void Tetris::Flip()
 
     // get spined mino form
     if (BlockState::S <= tempState && tempState < BlockState::Q)
-        memcpy(tempForm, this->CurrentBlock.minoForm_All[tempState], CpySize::form);
+        memcpy(tempForm, MinoForms[this->CurrentBlock.minoType][tempState], CpySize::form);
     else
         throw new exception("WTFFFF");
     Tetris::FormToOffset(tempForm, tempOffset);
@@ -335,35 +418,28 @@ void Tetris::Flip()
         memcpy(this->CurrentBlock.minoOffset, tempOffset, CpySize::offset);
         this->CurrentBlock.pos = tempPos;
         this->CurrentBlock.state = tempState;
+        this->CalculateGhostPos();
     }
 }
 void Tetris::HardDrop()
 {
-    this->CurrentBlock.pos.Y = this->CurrentBlock.predictedPos.Y;
+    this->CurrentBlock.pos.Y = this->CurrentBlock.ghostPos.Y;
     this->CurrentBlock.state = BlockState::Droped;
-}
-void Tetris::TryGravityDrop()
-{
-    COORD tempPos = this->CurrentBlock.pos;
-    tempPos.Y++;
-    if (CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
-        this->CurrentBlock.pos = tempPos;
-    }
 }
 bool Tetris::TrySpawn()
 {
     // set offset
-    this->FormToOffset(this->CurrentBlock.minoForm_All[BlockState::S], this->CurrentBlock.minoOffset);
+    this->FormToOffset(MinoForms[this->CurrentBlock.minoType][BlockState::S], this->CurrentBlock.minoOffset);
 
     // set spawn point
-    if (this->CurrentBlock.type == MinoType::Mino_O) {
+    if (this->CurrentBlock.minoType == EMino::O_MINO) {
         this->CurrentBlock.pos = { 4, 1 };
     }
     else {
         this->CurrentBlock.pos = { 3, 1 };
     }
     // set predicted pos
-    this->CalculatePredictedPos();
+    this->CalculateGhostPos();
 
     // set state
     this->CurrentBlock.state = BlockState::S;
@@ -382,7 +458,7 @@ void Tetris::TryHold()
     if (!this->BlockNextHold) {
         this->BlockNextHold = true;
 
-        if (HoldBlock.type == MinoType::Mino_NULL) {
+        if (HoldBlock.minoType == EMino::NULL_MINO) {
             this->HoldBlock = this->CurrentBlock;
         }
         else {
@@ -409,20 +485,20 @@ void Tetris::gotoxy(short x, short y) {
 void Tetris::UpdateBlockOnMap() {
 // Delete
     for (int i = 0; i < 4; i++) {
-        int x = this->prevOffset[i][0] + this->prevPos.X;
-        int y = this->prevOffset[i][1] + this->prevPos.Y;
+        int x = this->CurrentBlock.prevMinoOffset[i][0] + this->CurrentBlock.prevPos.X;
+        int y = this->CurrentBlock.prevMinoOffset[i][1] + this->CurrentBlock.prevPos.Y;
         gameMap[y][x] = Color::Black;
     }
     for (int i = 0; i < 4; i++) {
-        int x = this->prevOffset[i][0] + this->prevPredictedPos.X;
-        int y = this->prevOffset[i][1] + this->prevPredictedPos.Y;
+        int x = this->CurrentBlock.prevMinoOffset[i][0] + this->CurrentBlock.prevGhostPos.X;
+        int y = this->CurrentBlock.prevMinoOffset[i][1] + this->CurrentBlock.prevGhostPos.Y;
         gameMap[y][x] = Color::Black;
     }
 // Draw
-    // predicted block first
+    // ghost first
     for (int i = 0; i < 4; i++) {
-        int x = this->CurrentBlock.minoOffset[i][0] + this->CurrentBlock.predictedPos.X;
-        int y = this->CurrentBlock.minoOffset[i][1] + this->CurrentBlock.predictedPos.Y;
+        int x = this->CurrentBlock.minoOffset[i][0] + this->CurrentBlock.ghostPos.X;
+        int y = this->CurrentBlock.minoOffset[i][1] + this->CurrentBlock.ghostPos.Y;
         gameMap[y][x] = Color::DarkGray;
     }
     // block later
@@ -432,8 +508,12 @@ void Tetris::UpdateBlockOnMap() {
         gameMap[y][x] = this->CurrentBlock.minoColor;
     }
 }
-void Tetris::ReDrawBlock() {
+void Tetris::Pause()
+{
 
+}
+
+void Tetris::DrawBlock() {
     for (int y = 0; y < MAP_HEIGHT; y++) {
         for (int x = 0; x < MAP_WIDTH; x++) {
             if (this->gameMap[y][x] != this->prevGameMap[y][x]) {
@@ -447,15 +527,26 @@ void Tetris::ReDrawBlock() {
                 if (block != Color::Black && block != Color::DarkGray)
                     wcout << MAP_BLOCK;
                 else
-                    wcout << ((block == Color::Black) ? MAP_VOID : MAP_PREDICTED);
+                    wcout << ((block == Color::Black) ? MAP_VOID : MAP_GHOST);
             }
         }
     }
-
-
+    memcpy(this->prevGameMap, this->gameMap, CpySize::map);
 }
-
-
+void Tetris::DrawWholeMap()
+{
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            int color = gameMap[y][x];
+            gotoxy((x + Offsets::MAP_X) * 2, y + Offsets::MAP_Y);
+            SetConsoleTextAttribute(handle, color);
+            if (color != Color::Black && color != Color::DarkGray)
+                wcout << MAP_BLOCK;
+            else
+                wcout << ((color == Color::Black) ? MAP_VOID : MAP_GHOST);
+        }
+    }
+}
 void Tetris::DrawBorder()
 {
 //0      5               16       21
@@ -514,11 +605,11 @@ void Tetris::DrawInfo()
     
 
 }
-
 void Tetris::DrawQueueBlocks()
 {
     // Draw queue blocks
     queue<Block> tempQueue = nextBlockQueue;
+    tempQueue.pop();
     for (int i = 0; i < 5; i++) {
         Block b = tempQueue.front();
         tempQueue.pop();
@@ -540,7 +631,7 @@ void Tetris::DrawQueueBlocks()
         }
     }
     // draw holding block
-    if (this->HoldBlock.type != MinoType::Mino_NULL) {
+    if (this->HoldBlock.minoType != EMino::NULL_MINO) {
         // clear
         SetConsoleTextAttribute(handle, Color::Black);
         for (int x = 0; x < 4; x++) {
@@ -550,11 +641,13 @@ void Tetris::DrawQueueBlocks()
             std::wcout << MAP_VOID;
         }
         // draw
+        int _offset[4][2];
+        FormToOffset(MinoForms[this->HoldBlock.minoType][BlockState::S], _offset);
         if (this->BlockNextHold) {
             SetConsoleTextAttribute(handle, Color::Gray);
             for (int j = 0; j < 4; j++) {
-                int _x = this->HoldBlock.minoOffset[j][0];
-                int _y = this->HoldBlock.minoOffset[j][1];
+                int _x = _offset[j][0];
+                int _y = _offset[j][1];
                 gotoxy((1 + _x) * 2, 5 + _y);
                 std::wcout << MAP_BLOCK;
             }
@@ -562,27 +655,21 @@ void Tetris::DrawQueueBlocks()
         else {
             SetConsoleTextAttribute(handle, this->HoldBlock.minoColor);
             for (int j = 0; j < 4; j++) {
-                int _x = this->HoldBlock.minoOffset[j][0];
-                int _y = this->HoldBlock.minoOffset[j][1];
+                int _x = _offset[j][0];
+                int _y = _offset[j][1];
                 gotoxy((1 + _x) * 2, 5 + _y);
                 std::wcout << MAP_BLOCK;
             }
         }
     }
 }
-void Tetris::Pause()
-{
-
-}
-
-
 
 int Tetris::ClearLine()
 {
     int lineCount = 0;
-    for (int y = 0; y < MAP_WIDTH; y++) {
+    for (int y = 0; y < MAP_HEIGHT; y++) {
         int blockCount = 0;
-        for (int x = 0; x < 10; x++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
             if (gameMap[y][x] != Color::Black && gameMap[y][x] != Color::DarkGray) {
                 blockCount++;
             }
@@ -631,10 +718,10 @@ bool Tetris::CollisionCheck(int tempOffset[4][2], COORD tempPos){
     }
     return true;
 }
-bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, StateChanges changes)
+bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, EStateChanges changes)
 {
     int checkList[5][2];
-    GetCheckList(changes, checkList);
+    memcpy(checkList, CheckList_SRS[changes], CpySize::checkList);
 
     int passedTest = -1;
     for (int test = 0; test < 5; test++) {
@@ -665,21 +752,22 @@ void Tetris::LoopUpdateInput(bool* run, bool* ready)
         this->inputCV.wait(lock, [ready] {return *ready; });
         *ready = false;
         // move
-        UpdateKeyState(&KeyboardState::ArrowRight, InputKeySetting::ArrowRight);
-        UpdateKeyState(&KeyboardState::ArrowLeft, InputKeySetting::ArrowLeft);
-        UpdateKeyState(&KeyboardState::SoftDrop, InputKeySetting::SoftDrop);
+        UpdateKeyState(&Keyboard::ArrowRight, InputKeySetting::ArrowRight);
+        UpdateKeyState(&Keyboard::ArrowLeft, InputKeySetting::ArrowLeft);
+        UpdateKeyState(&Keyboard::SoftDrop, InputKeySetting::SoftDrop);
         // spin
-        UpdateKeyState(&KeyboardState::SpinRight, InputKeySetting::SpinRight);
-        UpdateKeyState(&KeyboardState::SpinLeft, InputKeySetting::SpinLeft);
-        UpdateKeyState(&KeyboardState::SpinFlip, InputKeySetting::SpinFilp);
+        UpdateKeyState(&Keyboard::SpinRight, InputKeySetting::SpinRight);
+        UpdateKeyState(&Keyboard::SpinLeft, InputKeySetting::SpinLeft);
+        UpdateKeyState(&Keyboard::SpinFlip, InputKeySetting::SpinFilp);
         // etc command
-        UpdateKeyState(&KeyboardState::Hold, InputKeySetting::Hold);
-        UpdateKeyState(&KeyboardState::HardDrop, InputKeySetting::HardDrop);
+        UpdateKeyState(&Keyboard::Hold, InputKeySetting::Hold);
+        UpdateKeyState(&Keyboard::HardDrop, InputKeySetting::HardDrop);
     }
 }
-void Tetris::CloseLoopUpdateInput(bool* run)
+void Tetris::CloseLoopUpdateInput(bool* run, bool * ready)
 {
     *run = false;
+    *ready = true;
     this->inputCV.notify_one();
     if (updateInputThread.joinable()) {
         updateInputThread.join();
@@ -696,66 +784,23 @@ void Tetris::UpdateKeyState(KeyState* _state, const int& keyCode)
         *_state = KeyState::Released;
 }
 
-void Tetris::CalculatePredictedPos()
-{
-    COORD tempPos = this->CurrentBlock.pos;
-    for (int y = this->CurrentBlock.pos.Y; y < 24; y++) {
-        tempPos.Y++;
-        if (!CollisionCheck(this->CurrentBlock.minoOffset, tempPos)) {
-            tempPos.Y--;
-            this->CurrentBlock.predictedPos = tempPos;
-            return;
-        }
-    }
-}
 
-void Tetris::GetCheckList(StateChanges changes, int _derefCheckList[5][2])
-{
-    switch (changes) {
-    case StateChanges::S_to_R: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::S_to_R, CpySize::checkList); break;
-    case StateChanges::R_to_S: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::R_to_S, CpySize::checkList); break;
-    case StateChanges::R_to_F: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::R_to_F, CpySize::checkList); break;
-    case StateChanges::F_to_R: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::F_to_R, CpySize::checkList); break;
-    case StateChanges::F_to_L: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::F_to_L, CpySize::checkList); break;
-    case StateChanges::L_to_F: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::L_to_F, CpySize::checkList); break;
-    case StateChanges::L_to_S: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::L_to_S, CpySize::checkList); break;
-    case StateChanges::S_to_L: memcpy(_derefCheckList, CheckList_SRS::JLSTZ::S_to_L, CpySize::checkList); break;
 
-    case StateChanges::I_S_to_R: memcpy(_derefCheckList, CheckList_SRS::I::S_to_R, CpySize::checkList); break;
-    case StateChanges::I_R_to_S: memcpy(_derefCheckList, CheckList_SRS::I::R_to_S, CpySize::checkList); break;
-    case StateChanges::I_R_to_F: memcpy(_derefCheckList, CheckList_SRS::I::R_to_F, CpySize::checkList); break;
-    case StateChanges::I_F_to_R: memcpy(_derefCheckList, CheckList_SRS::I::F_to_R, CpySize::checkList); break;
-    case StateChanges::I_F_to_L: memcpy(_derefCheckList, CheckList_SRS::I::F_to_L, CpySize::checkList); break;
-    case StateChanges::I_L_to_F: memcpy(_derefCheckList, CheckList_SRS::I::L_to_F, CpySize::checkList); break;
-    case StateChanges::I_L_to_S: memcpy(_derefCheckList, CheckList_SRS::I::L_to_S, CpySize::checkList); break;
-    case StateChanges::I_S_to_L: memcpy(_derefCheckList, CheckList_SRS::I::S_to_L, CpySize::checkList); break;
-    default:
-        for (int i = 0; i < 5; i++) {
-            _derefCheckList[i][0] = 0;
-            _derefCheckList[i][1] = 0;
-        }
-        break;
-    }
-}
-StateChanges Tetris::GetStateChanges(BlockState currentState, BlockState newState)
+
+EStateChanges Tetris::GetStateChanges(BlockState currentState, BlockState newState)
 {
-    if (currentState == newState)
-        return StateChanges::Default;
-    StateChanges changes = StateChanges::Default;
+    EStateChanges changes = EStateChanges::O;
     switch (currentState) {
-    case BlockState::S: changes = newState == BlockState::R ? StateChanges::S_to_R : StateChanges::S_to_L; break;
-    case BlockState::R: changes = newState == BlockState::F ? StateChanges::R_to_F : StateChanges::R_to_S; break;
-    case BlockState::F: changes = newState == BlockState::L ? StateChanges::F_to_L : StateChanges::F_to_R; break;
-    case BlockState::L: changes = newState == BlockState::S ? StateChanges::L_to_S : StateChanges::L_to_F; break;
+    case BlockState::S: changes = newState == BlockState::R ? EStateChanges::S_R : EStateChanges::S_L; break;
+    case BlockState::R: changes = newState == BlockState::F ? EStateChanges::R_F : EStateChanges::R_S; break;
+    case BlockState::F: changes = newState == BlockState::L ? EStateChanges::F_L : EStateChanges::F_R; break;
+    case BlockState::L: changes = newState == BlockState::S ? EStateChanges::L_S : EStateChanges::L_F; break;
     default: break;
     }
-    if (this->CurrentBlock.type == MinoType::Mino_I)
-        changes = static_cast<StateChanges>(static_cast<int>(changes) + 8); // I mino
-    else if (this->CurrentBlock.type == MinoType::Mino_O)
-        changes = StateChanges::Default;
+    if (this->CurrentBlock.minoType == EMino::I_MINO) changes = static_cast<EStateChanges>(static_cast<int>(changes) + 8); // I mino
     return changes;
 }
-void Tetris::FormToOffset(int minoForm[4][4], int outMinoOffset[4][2])
+void Tetris::FormToOffset(const int minoForm[4][4], int outMinoOffset[4][2])
 {
     int count = 0;
     for (int y = 0; y < 4; y++) {
@@ -768,19 +813,16 @@ void Tetris::FormToOffset(int minoForm[4][4], int outMinoOffset[4][2])
         }
     }
 }
-
-
-
 Block Tetris::GetRandomMino() {
-    if (minoBagNum == 0)
-        shuffle(minoBag, minoBag + sizeof(minoBag) / sizeof(minoBag[0]), gen);
+    if (this->minoBagNum == 0)
+        shuffle(this->minoBag, this->minoBag + sizeof(this->minoBag) / sizeof(this->minoBag[0]), gen);
 
-    MinoType type = minoBag[minoBagNum];
+    EMino type = this->minoBag[this->minoBagNum];
 
-    if (minoBagNum == 6)
-        minoBagNum = 0;
+    if (this->minoBagNum == 6)
+        this->minoBagNum = 0;
     else
-        minoBagNum++;
+        this->minoBagNum++;
 
     return type;
 }
