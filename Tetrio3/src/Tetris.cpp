@@ -68,7 +68,6 @@ void Tetris::gameLoopInfinity()
     this->inputTick.Stop();
     this->CloseLoopUpdateInput(&this->runInput, &this->inputFlag);
 }
-
 BlockState Tetris::blockLoop()
 {
     this->CalculateGhostPos();
@@ -297,6 +296,7 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     this->sdrrTick = Tick(Handling::SDRR, nullptr, &this->sdrrFlag, nullptr);
 }
 
+// block things
 void Tetris::CalculateGhostPos()
 {
     COORD tempPos = this->CurrentBlock.pos;
@@ -731,7 +731,6 @@ bool Tetris::KickCheck(int tempOffset[4][2], COORD*derefTempPos, EStateChanges c
     return false;
 }
 
-
 /// <summary>
 /// must notify one after close runflag
 /// </summary>
@@ -778,9 +777,6 @@ void Tetris::UpdateKeyState(KeyState* _state, const int& keyCode)
         *_state = KeyState::Released;
 }
 
-
-
-
 EStateChanges Tetris::GetStateChanges(BlockState currentState, BlockState newState)
 {
     EStateChanges changes = EStateChanges::O;
@@ -820,4 +816,3 @@ Block Tetris::GetRandomMino() {
 
     return type;
 }
-

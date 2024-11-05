@@ -1,7 +1,8 @@
 #pragma once
+#include <time.h>
+
 #include <chrono>
 #include <thread>
-#include <time.h>
 #include <ctime>
 #include <condition_variable>
 

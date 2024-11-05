@@ -1,7 +1,8 @@
 #pragma once
 #define NOMINMAX
-#include <iostream>
 #include <Windows.h>
+
+#include <iostream>
 #include <chrono>
 #include <random>
 #include <queue>
@@ -21,10 +22,6 @@ public:
 	Tetris(HANDLE& _handle, HWND& hwnd) {
 		Init(_handle, hwnd);
 	}
-	~Tetris() {
-
-	}
-
 
 	void gameLoopInfinity();
 
@@ -108,14 +105,6 @@ private:
 	void DrawBorder();
 	void DrawInfo();
 	void DrawQueueBlocks();
-
-
-	
-
-	
-
-
-
 
 	int ClearLine();
 	void appendLine(int _y);

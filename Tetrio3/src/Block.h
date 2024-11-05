@@ -1,10 +1,12 @@
 #pragma once
 #define NOMINMAX
 #include <Windows.h>
-#include <algorithm>
 #include <conio.h>
+
+#include <algorithm>
 #include <iostream>
 #include <future>
+
 #include "gameData.h"
 #include "Block.h"
 

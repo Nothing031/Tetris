@@ -32,6 +32,7 @@ KeyState Keyboard::SoftDrop = KeyState::Released;
 KeyState Keyboard::HardDrop = KeyState::Released;
 KeyState Keyboard::Hold = KeyState::Released;
 
+// default setting
 int InputKeySetting::ArrowLeft = 0x25;
 int InputKeySetting::ArrowRight = 0x27;
 int InputKeySetting::SpinLeft = 0x5A;
@@ -44,7 +45,6 @@ int InputKeySetting::HardDrop = 0x20;
 int Handling::ARR = 40;
 int Handling::DAS = 160;
 int Handling::SDRR = 40;
-
 
 using namespace std;
 
@@ -78,14 +78,11 @@ int SettingSelectItemTable[8] = {
 	18
 };
 
-
 void ReadConfig();
 void WriteConfig();
 
 void Init();
 void SetCursorVisible(bool visible);
-
-
 
 ETitleSelectItem TitleHome();
 void SettingsHome();
@@ -98,9 +95,7 @@ int GetKeybindInput();
 int main()
 {
 	Init();
-
 	ETitleSelectItem selectedItem;
-
 	while (true) {
 		selectedItem = TitleHome();
 
@@ -126,7 +121,6 @@ void Init() {
 	SetCursorVisible(false);
 	ReadConfig();
 }
-
 
 ETitleSelectItem TitleHome()
 {
@@ -388,7 +382,6 @@ int GetKeybindInput() {
 	int input;
 	ClearKeyBuffer();
 	while (true) {
-
 		if (GetAsyncKeyState(VK_LSHIFT) & 0x8000) {
 			input = VK_LSHIFT;
 			break;
@@ -415,9 +408,4 @@ int GetKeybindInput() {
 	}
 	ClearKeyBuffer();
 	return input;
-}
-
-
-
-
-
+}	 
