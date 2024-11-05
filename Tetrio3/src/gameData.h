@@ -70,6 +70,7 @@ enum KeyState : int {
     Pressing = 1,
     Pressed = 2
 };
+
 enum InputKey : int {
     K_Null,
     K_ArrowLeft,
@@ -81,6 +82,7 @@ enum InputKey : int {
     K_HardDrop,
     K_Hold
 };
+
 struct Keyboard {
     static KeyState ArrowLeft;
     static KeyState ArrowRight;
@@ -91,7 +93,6 @@ struct Keyboard {
     static KeyState HardDrop;
     static KeyState Hold;
 };
-
 
 struct InputKeySetting {
     static int ArrowLeft;
@@ -104,16 +105,18 @@ struct InputKeySetting {
     static int Hold;
 };
 
-
-
 struct Handling {
     static int ARR;
     static int DAS;
     static int SDRR;
 };
 
-
-
+static const int DasMax = 500;
+static const int DasMin = 10;
+static const int ArrMax = 100;
+static const int ArrMin = 10;
+static const int SdrrMax = 200;
+static const int SdrrMin = 0;
 
 
 enum EStateChanges : int {

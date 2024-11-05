@@ -50,8 +50,8 @@ void Tetris::gameLoopInfinity()
         //Hold or pass
         if (state == BlockState::Hold) {
             this->TryHold();
-            this->DrawWholeMap();
             memcpy(this->gameMap, this->mapExceptBlock, CpySize::map);
+            this->DrawBlock();
             continue;
         }
 
@@ -59,12 +59,9 @@ void Tetris::gameLoopInfinity()
 
 
         memcpy(mapExceptBlock, gameMap, CpySize::map);
-        this->DrawWholeMap();
+        this->DrawBlock();
+        //this->DrawWholeMap();
         continue;
-        
-
-
-
     }
 
     // stop inputTick
@@ -180,7 +177,7 @@ BlockState Tetris::blockLoop()
 
         // softdrop
         if (Handling::SDRR == 0) {
-            if (Keyboard::Keyboard::SoftDrop == KeyState::Pressing) {
+            if (Keyboard::SoftDrop == KeyState::Pressing) {
                 this->CurrentBlock.pos = this->CurrentBlock.ghostPos;
             }
         }
@@ -299,8 +296,6 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     this->rightDasTick = Tick(Handling::DAS, nullptr, &this->rightDasFlag, nullptr);
     this->sdrrTick = Tick(Handling::SDRR, nullptr, &this->sdrrFlag, nullptr);
 }
-
-
 
 void Tetris::CalculateGhostPos()
 {
@@ -476,7 +471,6 @@ void Tetris::TryHold()
         return;
     }
 }
-
 
 void Tetris::gotoxy(short x, short y) {
     COORD _pos = { x, y };
