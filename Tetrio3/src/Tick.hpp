@@ -166,6 +166,7 @@ public:
 		case TickMode::T_FlagDouble: this->_thread = std::thread(&Tick::_FLAGDOUBLE, this); return;
 		case TickMode::T_Null: this->running = false; return;
 		}
+		
 	}
 	void Stop() {
 		this->running = false;

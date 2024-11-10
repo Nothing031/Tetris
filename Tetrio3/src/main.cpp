@@ -92,9 +92,16 @@ int ReadKey();
 void ClearKeyBuffer();
 int GetKeybindInput();
 
+
+
 int main()
 {
 	Init();
+	Tetris tetris(handle, hwnd);
+	tetris.gameLoopInfinity();
+
+
+	return 0;
 	ETitleSelectItem selectedItem;
 	while (true) {
 		selectedItem = TitleHome();

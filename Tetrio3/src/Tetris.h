@@ -23,60 +23,41 @@ public:
 		Init(_handle, hwnd);
 	}
 
+ 
+
+	void UpdateDisplay(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
+
+
+
+
+
 	void gameLoopInfinity();
 
 private:
-	Block CurrentBlock;
-	queue<Block> nextBlockQueue;
-	Block HoldBlock;
-	bool BlockNextHold;
+	// new tick
+
+	//Tick newUpdateGameTick;
+	//condition_variable newUpdateGameCV;
+	//bool newUpdateGameFlag;
+
+	//bool newRunning;
+
+
+	Block CurrentShit;
+	queue<Block> nextShitQueue;
+	Block HoldShit;
+	bool DisableNextHold;
 
 	EMino minoBag[7];
 	int minoBagNum = 0;
 	int gameMap[MAP_HEIGHT][MAP_WIDTH];
-	int prevGameMap[MAP_HEIGHT][MAP_WIDTH];
-	int mapExceptBlock[MAP_HEIGHT][MAP_WIDTH];
+	int collisionMap[MAP_HEIGHT][MAP_WIDTH];
 
 	HANDLE handle;
 	HWND hwnd;
 
 	random_device rd;
 	mt19937 gen;
-
-	BlockState blockLoop();
-
-	// tick
-	Tick gameUpdateTick;
-	bool gameUpdateFlag = false;
-
-	Tick gravityTick;
-	bool gravityFlag = false;
-
-	Tick forceDropTick;
-	bool forceDropFlag = false;
-	bool forceDropTicking = false;
-
-	Tick inputTick;
-	bool inputFlag = false;
-	bool runInput = false;
-
-	Tick leftArrTick;
-	Tick leftDasTick;
-	Tick rightArrTick;
-	Tick rightDasTick;
-	bool leftArrFlag = false;
-	bool leftDasFlag = false;
-	bool rightArrFlag = false;
-	bool rightDasFlag = false;
-
-	Tick sdrrTick;//soft drop repeat rate
-	bool sdrrFlag = false;
-
-	thread updateInputThread;
-
-	condition_variable gameUpdateCV;
-	condition_variable inputCV;
-
 
 	void MoveLeft();
 	void MoveRight();
@@ -90,7 +71,7 @@ private:
 	/// must called by gameLoop
 	/// not the blockLoop
 	/// </summary>
-	void TryHold();
+	void Hold();
 
 
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
@@ -117,9 +98,9 @@ private:
 	EStateChanges GetStateChanges(BlockState currentState, BlockState newState);
 	void FormToOffset(const int minoForm[4][4], int outMoniOffset[4][2]);
 
-	void LoopUpdateInput(bool* run, bool* ready);
-	void CloseLoopUpdateInput(bool* run, bool* ready);
-	void UpdateKeyState(KeyState* _state, const int& keyCode);
+	void LoopUpdateInput(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
+	void CloseloopThread(thread* pThread, bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
+	inline void UpdateKeyState(KeyState* _state, const int& keyCode);
 
 
 	void Init(HANDLE& _handle, HWND& _hwnd);
