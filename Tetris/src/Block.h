@@ -1,7 +1,6 @@
 #pragma once
 #define NOMINMAX
 #include <Windows.h>
-#include <conio.h>
 
 #include <algorithm>
 #include <iostream>
@@ -16,7 +15,6 @@ class Block
 private:
     void Init(EMino initType) {
         this->minoType = initType;
-
         this->minoColor = static_cast<Color>(MinoColor[minoType]);
         this->pos = { 0, 0 };
         this->ghostPos = { 0, 0 };

@@ -23,14 +23,6 @@ public:
 		Init(_handle, hwnd);
 	}
 
- 
-
-	void UpdateDisplay(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
-
-
-
-
-
 	void gameLoopInfinity();
 
 private:
@@ -81,7 +73,7 @@ private:
 	void UpdateBlockOnMap();
 	void Pause();
 
-	void DrawBlock();
+	void UpdateDisplay(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
 	void DrawWholeMap();
 	void DrawBorder();
 	void DrawInfo();
@@ -92,8 +84,7 @@ private:
 
 	Block GetRandomMino();
 
-
-	void CalculateGhostPos();
+	inline void CalculateGhostPos();
 
 	EStateChanges GetStateChanges(BlockState currentState, BlockState newState);
 	void FormToOffset(const int minoForm[4][4], int outMoniOffset[4][2]);

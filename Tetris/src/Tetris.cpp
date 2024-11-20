@@ -1,6 +1,7 @@
 #define NOMINMAX
-#include <iostream>
 #include <Windows.h>
+
+#include <iostream>
 #include <chrono>
 #include <random>
 #include <queue>
@@ -94,7 +95,7 @@ void Tetris::gameLoopInfinity()
     bool ForceDropTicking;
     bool _forcedropflag = false;
     bool* pForceDropFlag = &_forcedropflag;
-    Tick ForceDropTick(2000, nullptr, pGravityFlag, nullptr);
+    Tick ForceDropTick(2000, nullptr, pForceDropFlag, nullptr);
 
     // move tick
     //// left
@@ -113,14 +114,13 @@ void Tetris::gameLoopInfinity()
 
     // this massive shit is longer than my dick wtf
 #pragma endregion
+
     bool nextUpdateDisplayFlag = true;
     DrawBorder();
+
     while (true) {
         ClearLine();
-        memcpy(this->collisionMap, this->gameMap, CpySize::map);
         this->DrawQueueBlocks();
-        this->DisableNextHold = false;
-
 
         // push random mino to the block queue
         while (this->nextShitQueue.size() < 7) {
@@ -136,9 +136,9 @@ void Tetris::gameLoopInfinity()
             system("cls");
             break; //failed
         }
-        UpdateBlockOnMap();
 
         CalculateGhostPos();
+        UpdateBlockOnMap();
         gravityTick.Start();
         
         *pUpdateDisplayCV_ReadyFlag = true;
@@ -265,15 +265,39 @@ void Tetris::gameLoopInfinity()
                 }
             }
 #pragma endregion
-            
-
-
-
-
-
-
-
-
+#pragma region Spin
+            if (Keyboard::SpinLeft == KeyState::Pressing) {
+                Keyboard::SpinLeft = KeyState::Pressed;
+                nextUpdateDisplayFlag = true;
+                this->SpinLeft();
+            }
+            if (Keyboard::SpinRight == KeyState::Pressing) {
+                Keyboard::SpinRight = KeyState::Pressed;
+                nextUpdateDisplayFlag = true;
+                this->SpinRight();
+            }
+            if (Keyboard::SpinFlip == KeyState::Pressing) {
+                Keyboard::SpinFlip = KeyState::Pressed;
+                nextUpdateDisplayFlag = true;
+                this->Flip();
+            }
+#pragma endregion
+#pragma region ETC
+            if (Keyboard::HardDrop == KeyState::Pressing) {
+                Keyboard::HardDrop = KeyState::Pressed;
+                this->CurrentShit.pos.Y = this->CurrentShit.ghostPos.Y;
+                this->UpdateBlockOnMap();
+                this->CurrentShit.state = BlockState::Droped;
+                break;
+            }
+            if (Keyboard::Hold == KeyState::Pressing) {
+                Keyboard::Hold = KeyState::Pressed;
+                if (!DisableNextHold) {
+                    this->CurrentShit.state = BlockState::Hold; 
+                    break;
+                }
+            }
+#pragma endregion
             if (nextUpdateDisplayFlag) {
                 nextUpdateDisplayFlag = false;
                 *pUpdateDisplayCV_ReadyFlag = true;
@@ -286,7 +310,6 @@ void Tetris::gameLoopInfinity()
         UpdateBlockOnMap();
         gravityTick.Stop();
         ForceDropTick.Stop();
-        updateGameTick.Stop();
         leftDasTick.Stop();
         leftArrTick.Stop();
         rightDasTick.Stop();
@@ -296,14 +319,11 @@ void Tetris::gameLoopInfinity()
 
         if (CurrentShit.state == BlockState::Droped) {
             this->DisableNextHold = false;
-            
-
-
-
+            memcpy(collisionMap, gameMap, CpySize::map);
         }
         if (CurrentShit.state == BlockState::Hold) {
-            memcpy(gameMap, collisionMap, CpySize::map);
             this->DisableNextHold = true;
+            memcpy(gameMap, collisionMap, CpySize::map);
             if (HoldShit.minoType == EMino::NULL_MINO) {
                 this->HoldShit = this->CurrentShit;
             }
@@ -542,7 +562,7 @@ void Tetris::gotoxy(short x, short y) {
     COORD _pos = { x, y };
     SetConsoleCursorPosition(this->handle, _pos);
 }
-void Tetris::UpdateBlockOnMap() {
+inline void Tetris::UpdateBlockOnMap() {
 // Delete
     for (int i = 0; i < 4; i++) {
         int x = this->CurrentShit.prevMinoOffset[i][0] + this->CurrentShit.prevPos.X;
