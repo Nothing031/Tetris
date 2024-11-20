@@ -342,7 +342,6 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
         }
     }
     memcpy(collisionMap, gameMap, CpySize::map);
-    memcpy(prevGameMap, gameMap, CpySize::map);
 
     //init minobag
     this->minoBag[0] = EMino::I_MINO;
@@ -572,26 +571,6 @@ void Tetris::UpdateBlockOnMap() {
 void Tetris::Pause()
 {
 
-}
-void Tetris::DrawBlock() {
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-        for (int x = 0; x < MAP_WIDTH; x++) {
-            if (this->gameMap[y][x] != this->prevGameMap[y][x]) {
-                int block = gameMap[y][x];
-                SetConsoleTextAttribute(handle, block);
-                if (block == -1)
-                    block = Color::DarkGray;
-
-                gotoxy((x + Offsets::MAP_X) * 2, y + Offsets::MAP_Y);
-                
-                if (block != Color::Black && block != Color::DarkGray)
-                    wcout << MAP_BLOCK;
-                else
-                    wcout << ((block == Color::Black) ? MAP_VOID : MAP_GHOST);
-            }
-        }
-    }
-    memcpy(this->prevGameMap, this->gameMap, CpySize::map);
 }
 void Tetris::DrawWholeMap()
 {
