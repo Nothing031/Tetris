@@ -44,6 +44,7 @@ private:
 	int minoBagNum = 0;
 	int gameMap[MAP_HEIGHT][MAP_WIDTH];
 	int collisionMap[MAP_HEIGHT][MAP_WIDTH];
+	mutex updateMutex;
 
 	HANDLE handle;
 	HWND hwnd;
@@ -57,14 +58,7 @@ private:
 	void SpinLeft();
 	void SpinRight();
 	void Flip();
-	void HardDrop();
 	bool TrySpawn();
-	/// <summary>
-	/// must called by gameLoop
-	/// not the blockLoop
-	/// </summary>
-	void Hold();
-
 
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, EStateChanges changes);
@@ -74,7 +68,6 @@ private:
 	void Pause();
 
 	void UpdateDisplay(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
-	void DrawWholeMap();
 	void DrawBorder();
 	void DrawInfo();
 	void DrawQueueBlocks();

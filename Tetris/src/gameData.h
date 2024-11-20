@@ -112,9 +112,9 @@ struct Handling {
 };
 
 static const int DasMax = 500;
-static const int DasMin = 10;
+static const int DasMin = 0;
 static const int ArrMax = 100;
-static const int ArrMin = 10;
+static const int ArrMin = 0;
 static const int SdrrMax = 200;
 static const int SdrrMin = 0;
 

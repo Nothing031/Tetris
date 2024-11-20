@@ -17,22 +17,30 @@ private:
         this->minoType = initType;
         this->minoColor = static_cast<Color>(MinoColor[minoType]);
         this->pos = { 0, 0 };
+        this->prevPos = { 0, 0 };
         this->ghostPos = { 0, 0 };
+        this->prevGhostPos = { 0, 0 };
         this->state = BlockState::Q;
-        // mino form
-        int sizeint[4][4][4];
-        size_t cpySize = sizeof(sizeint);
 
-        // init offset
-        int count = 0;
-        for (int y = 0; y < 4; y++) {
-            for (int x = 0; x < 4; x++) {
-                if (MinoForms[this->minoType][BlockState::S][y][x] != 0) {
-                    this->minoOffset[count][0] = x;
-                    this->minoOffset[count][1] = y;
-                    count++;
+        if (initType == EMino::NULL_MINO) {
+            for (int i = 0; i < 4; i++) {
+                this->minoOffset[i][0] = 0;
+                this->minoOffset[i][1] = 0;
+            }
+            memcpy(this->prevMinoOffset, this->minoOffset, CpySize::offset);
+        }
+        else {
+            int count = 0;
+            for (int y = 0; y < 4; y++) {
+                for (int x = 0; x < 4; x++) {
+                    if (MinoForms[this->minoType][BlockState::S][y][x] != 0) {
+                        this->minoOffset[count][0] = x;
+                        this->minoOffset[count][1] = y;
+                        count++;
+                    }
                 }
             }
+            memcpy(this->prevMinoOffset, this->minoOffset, CpySize::offset);
         }
     }
 public:
@@ -67,8 +75,11 @@ public:
             this->minoType = other.minoType;
             this->minoColor = other.minoColor;
             this->pos = other.pos;
+            this->prevPos = other.prevPos;
             this->ghostPos = other.ghostPos;
-            memcpy(this->minoOffset, other.minoOffset, sizeof(minoOffset));
+            this->prevGhostPos = other.prevGhostPos;
+            memcpy(this->minoOffset, other.minoOffset, CpySize::offset);
+            memcpy(this->prevMinoOffset, other.prevMinoOffset, CpySize::offset);
         }
         return *this;
     }

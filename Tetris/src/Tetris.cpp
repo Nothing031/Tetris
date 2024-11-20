@@ -24,13 +24,17 @@ void Tetris::UpdateDisplay(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_varia
     bool* pFlag = pCV_ReadyFlag;
     int cpyMap[MAP_HEIGHT][MAP_WIDTH];
     int prevMap[MAP_HEIGHT][MAP_WIDTH];
+    
     memcpy(cpyMap, gameMap, CpySize::map);
     memcpy(prevMap, gameMap, CpySize::map);
     
+
     while (*pLoopFlag) {
         pCV->wait(lock, [pFlag] {return *pFlag; });
         *pFlag = false;
+        this->updateMutex.lock();
         memcpy(cpyMap, gameMap, CpySize::map);
+        this->updateMutex.unlock();
 
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
@@ -119,7 +123,6 @@ void Tetris::gameLoopInfinity()
     DrawBorder();
 
     while (true) {
-        ClearLine();
         this->DrawQueueBlocks();
 
         // push random mino to the block queue
@@ -165,7 +168,9 @@ void Tetris::gameLoopInfinity()
                 ForceDropTicking = false;
             }
             if (*pForceDropFlag) {
+                this->updateMutex.lock();
                 this->CurrentShit.pos = this->CurrentShit.ghostPos;
+                this->updateMutex.unlock();
                 CurrentShit.state = BlockState::Droped;
                 break;
             }
@@ -238,7 +243,9 @@ void Tetris::gameLoopInfinity()
             if (Handling::SDRR == 0) {
                 if (Keyboard::SoftDrop == KeyState::Pressing) {
                     nextUpdateDisplayFlag = true;
+                    this->updateMutex.lock();
                     this->CurrentShit.pos = this->CurrentShit.ghostPos;
+                    this->updateMutex.unlock();
                     UpdateBlockOnMap();
                 }
             }
@@ -298,6 +305,7 @@ void Tetris::gameLoopInfinity()
                 }
             }
 #pragma endregion
+
             if (nextUpdateDisplayFlag) {
                 nextUpdateDisplayFlag = false;
                 *pUpdateDisplayCV_ReadyFlag = true;
@@ -307,7 +315,6 @@ void Tetris::gameLoopInfinity()
 
         }// endwhile BlockLoop
 
-        UpdateBlockOnMap();
         gravityTick.Stop();
         ForceDropTick.Stop();
         leftDasTick.Stop();
@@ -318,6 +325,7 @@ void Tetris::gameLoopInfinity()
 
 
         if (CurrentShit.state == BlockState::Droped) {
+            ClearLine();
             this->DisableNextHold = false;
             memcpy(collisionMap, gameMap, CpySize::map);
         }
@@ -397,7 +405,9 @@ void Tetris::MoveLeft() {
     COORD tempPos = this->CurrentShit.pos;
     tempPos.X--;
     if (CollisionCheck(this->CurrentShit.minoOffset, tempPos)) {
+        this->updateMutex.lock();
         this->CurrentShit.pos.X--;
+        this->updateMutex.unlock();
         this->CalculateGhostPos();
         this->UpdateBlockOnMap();
     }
@@ -406,7 +416,9 @@ void Tetris::MoveRight() {
     COORD tempPos = this->CurrentShit.pos;
     tempPos.X++;
     if (CollisionCheck(this->CurrentShit.minoOffset, tempPos)) {
+        this->updateMutex.lock();
         this->CurrentShit.pos.X++;
+        this->updateMutex.unlock();
         this->CalculateGhostPos();
         this->UpdateBlockOnMap();
     }
@@ -415,7 +427,9 @@ void Tetris::SoftDrop() {
     COORD tempPos = this->CurrentShit.pos;
     tempPos.Y++;
     if (CollisionCheck(this->CurrentShit.minoOffset, tempPos)) {
+        this->updateMutex.lock();
         this->CurrentShit.pos.Y++;
+        this->updateMutex.unlock();
         this->UpdateBlockOnMap();
     }
 }
@@ -441,8 +455,10 @@ void Tetris::SpinLeft()
     Tetris::FormToOffset(tempForm, tempOffset);
 
     if (KickCheck(tempOffset, &tempPos, changes)) {
+        this->updateMutex.lock();
         memcpy(this->CurrentShit.minoOffset, tempOffset, CpySize::offset);
         this->CurrentShit.pos = tempPos;
+        this->updateMutex.unlock();
         this->CurrentShit.state = tempState;
         this->CalculateGhostPos();
         this->UpdateBlockOnMap();
@@ -470,8 +486,10 @@ void Tetris::SpinRight()
     Tetris::FormToOffset(tempForm, tempOffset);
 
     if (KickCheck(tempOffset, &tempPos, changes)) {
+        this->updateMutex.lock();
         memcpy(this->CurrentShit.minoOffset, tempOffset, CpySize::offset);
         this->CurrentShit.pos = tempPos;
+        this->updateMutex.unlock();
         this->CurrentShit.state = tempState;
         this->CalculateGhostPos();
         this->UpdateBlockOnMap();
@@ -499,18 +517,14 @@ void Tetris::Flip()
     Tetris::FormToOffset(tempForm, tempOffset);
 
     if (KickCheck(tempOffset, &tempPos, changes)) {
+        this->updateMutex.lock();
         memcpy(this->CurrentShit.minoOffset, tempOffset, CpySize::offset);
         this->CurrentShit.pos = tempPos;
+        this->updateMutex.unlock();
         this->CurrentShit.state = tempState;
         this->CalculateGhostPos();
         this->UpdateBlockOnMap();
     }
-}
-void Tetris::HardDrop()
-{
-    this->CurrentShit.pos.Y = this->CurrentShit.ghostPos.Y;
-    this->CurrentShit.state = BlockState::Droped;
-    this->UpdateBlockOnMap();
 }
 bool Tetris::TrySpawn()
 {
@@ -539,72 +553,58 @@ bool Tetris::TrySpawn()
         return false;
     }
 }
-void Tetris::Hold()
-{
-    this->DisableNextHold = true;
-
-    if (HoldShit.minoType == EMino::NULL_MINO) {
-        this->HoldShit = this->CurrentShit;
-    }
-    else {
-        queue<Block> tempQueue;
-        tempQueue.push(this->HoldShit);
-        while (!this->nextShitQueue.empty()) {
-            tempQueue.push(this->nextShitQueue.front());
-            this->nextShitQueue.pop();
-        }
-        this->nextShitQueue = tempQueue;
-        this->HoldShit = this->CurrentShit;
-    }
-}
 
 void Tetris::gotoxy(short x, short y) {
     COORD _pos = { x, y };
     SetConsoleCursorPosition(this->handle, _pos);
 }
 inline void Tetris::UpdateBlockOnMap() {
+    int cpyMap[MAP_HEIGHT][MAP_WIDTH];
+    int _prevMinoOffset[4][2];
+    int _minoOffset[4][2];
+    Color _minoColor;
+
+    this->updateMutex.lock();
+    _minoColor = this->CurrentShit.minoColor;
+    COORD _prevGhostPos = this->CurrentShit.prevGhostPos;
+    COORD _prevPos = this->CurrentShit.prevPos;
+    COORD _ghostPos = this->CurrentShit.ghostPos;
+    COORD _pos = this->CurrentShit.pos;
+
+    memcpy(cpyMap, this->gameMap, CpySize::map);
+    memcpy(_prevMinoOffset, this->CurrentShit.prevMinoOffset, CpySize::offset);
+    memcpy(_minoOffset, this->CurrentShit.minoOffset, CpySize::offset);
+    this->updateMutex.unlock();
+
 // Delete
     for (int i = 0; i < 4; i++) {
-        int x = this->CurrentShit.prevMinoOffset[i][0] + this->CurrentShit.prevPos.X;
-        int y = this->CurrentShit.prevMinoOffset[i][1] + this->CurrentShit.prevPos.Y;
-        gameMap[y][x] = Color::Black;
+        int x = _prevMinoOffset[i][0] + _prevGhostPos.X;
+        int y = _prevMinoOffset[i][1] + _prevGhostPos.Y;
+        cpyMap[y][x] = Color::Black;
     }
     for (int i = 0; i < 4; i++) {
-        int x = this->CurrentShit.prevMinoOffset[i][0] + this->CurrentShit.prevGhostPos.X;
-        int y = this->CurrentShit.prevMinoOffset[i][1] + this->CurrentShit.prevGhostPos.Y;
-        gameMap[y][x] = Color::Black;
+        int x = _prevMinoOffset[i][0] + _prevPos.X;
+        int y = _prevMinoOffset[i][1] + _prevPos.Y;
+        cpyMap[y][x] = Color::Black;
     }
 // Draw
     // ghost first
     for (int i = 0; i < 4; i++) {
-        int x = this->CurrentShit.minoOffset[i][0] + this->CurrentShit.ghostPos.X;
-        int y = this->CurrentShit.minoOffset[i][1] + this->CurrentShit.ghostPos.Y;
-        gameMap[y][x] = Color::DarkGray;
+        int x = _minoOffset[i][0] + _ghostPos.X;
+        int y = _minoOffset[i][1] + _ghostPos.Y;
+        cpyMap[y][x] = Color::DarkGray;
     }
     // block later
     for (int i = 0; i < 4; i++) {
-        int x = this->CurrentShit.minoOffset[i][0] + this->CurrentShit.pos.X;
-        int y = this->CurrentShit.minoOffset[i][1] + this->CurrentShit.pos.Y;
-        gameMap[y][x] = this->CurrentShit.minoColor;
+        int x = _minoOffset[i][0] + _pos.X;
+        int y = _minoOffset[i][1] + _pos.Y;
+        cpyMap[y][x] = _minoColor;
     }
+    memcpy(this->gameMap, cpyMap, CpySize::map);
 }
 void Tetris::Pause()
 {
 
-}
-void Tetris::DrawWholeMap()
-{
-    for (int y = 0; y < MAP_HEIGHT; y++) {
-        for (int x = 0; x < MAP_WIDTH; x++) {
-            int color = gameMap[y][x];
-            gotoxy((x + Offsets::MAP_X) * 2, y + Offsets::MAP_Y);
-            SetConsoleTextAttribute(handle, color);
-            if (color != Color::Black && color != Color::DarkGray)
-                wcout << MAP_BLOCK;
-            else
-                wcout << ((color == Color::Black) ? MAP_VOID : MAP_GHOST);
-        }
-    }
 }
 void Tetris::DrawBorder()
 {
