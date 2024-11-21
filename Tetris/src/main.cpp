@@ -123,6 +123,7 @@ void Init() {
 	SetConsoleTitle(TEXT("Tetris"));
 	SetCursorVisible(false);
 	ReadConfig();
+	timeBeginPeriod(1);
 }
 
 ETitleSelectItem TitleHome()
@@ -227,22 +228,22 @@ void SettingsHome() {
 #pragma region CASE_ARROW_LEFT
 			if (selectedItem < ESettingSelectItem::E_STARTBIND) {
 				if (selectedItem == ESettingSelectItem::DAS) {
-					if ((Handling::DAS + 10) <= DasMax) {
-						Handling::DAS += 10;
+					if ((Handling::DAS + 2) <= DasMax) {
+						Handling::DAS += 2;
 						gotoxy(0, 4);
 						cout << "\r          " << DasMax << " < " << Handling::DAS << "ms" << " > " << DasMin << "     ";
 					}
 				}
 				else if (selectedItem == ESettingSelectItem::ARR) {
-					if ((Handling::ARR + 10) <= ArrMax) {
-						Handling::ARR += 10;
+					if ((Handling::ARR + 2) <= ArrMax) {
+						Handling::ARR += 2;
 						gotoxy(0, 7);
 						cout << "\r          " << ArrMax << " < " << Handling::ARR << "ms" << " > " << ArrMin << "     ";
 					}
 				}
 				else if (selectedItem == ESettingSelectItem::SDRR) {
-					if ((Handling::SDRR + 10) <= SdrrMax) {
-						Handling::SDRR += 10;
+					if ((Handling::SDRR + 2) <= SdrrMax) {
+						Handling::SDRR += 2;
 						gotoxy(0, 10);
 						cout << "\r          " << SdrrMax << " < " << Handling::SDRR << "ms" << " > " << SdrrMin << "     ";
 					}
@@ -254,22 +255,22 @@ void SettingsHome() {
 #pragma region CASE_ARROW_RIGHT
 			if (selectedItem < ESettingSelectItem::E_STARTBIND) {
 				if (selectedItem == ESettingSelectItem::DAS) {
-					if ((Handling::DAS - 10) >= DasMin) {
-						Handling::DAS -= 10;
+					if ((Handling::DAS - 2) >= DasMin) {
+						Handling::DAS -= 2;
 						gotoxy(0, 4);
 						cout << "\r          " << DasMax << " < " << Handling::DAS << "ms" << " > " << DasMin << "     ";
 					}
 				}
 				else if (selectedItem == ESettingSelectItem::ARR) {
-					if ((Handling::ARR - 10) >= ArrMin) {
-						Handling::ARR -= 10;
+					if ((Handling::ARR - 2) >= ArrMin) {
+						Handling::ARR -= 2;
 						gotoxy(0, 7);
 						cout << "\r          " << ArrMax << " < " << Handling::ARR << "ms" << " > " << ArrMin << "     ";
 					}
 				}
 				else if (selectedItem == ESettingSelectItem::SDRR) {
-					if ((Handling::SDRR - 10) >= SdrrMin) {
-						Handling::SDRR -= 10;
+					if ((Handling::SDRR - 2) >= SdrrMin) {
+						Handling::SDRR -= 2;
 						gotoxy(0, 10);
 						cout << "\r          " << SdrrMax << " < " << Handling::SDRR << "ms" << " > " << SdrrMin << "     ";
 					}

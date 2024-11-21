@@ -79,6 +79,7 @@ private:
 			if (now - start >= this->_interval) {
 				start = clock();
 				this->_pExternalCV->notify_one();
+				this->tickCount++;
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(_advancedTimer_microsecond));
 		}
@@ -92,6 +93,7 @@ private:
 				start = clock();
 				*this->_pExternalFlag1 = true;
 				this->_pExternalCV->notify_one();
+				this->tickCount++;
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(_advancedTimer_microsecond));
 		}
@@ -106,6 +108,7 @@ private:
 				*this->_pExternalFlag1 = true;
 				*this->_pExternalFlag2 = true;
 				this->_pExternalCV->notify_one();
+				this->tickCount++;
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(_advancedTimer_microsecond));
 		}
@@ -118,6 +121,7 @@ private:
 			if (now - start >= this->_interval) {
 				start = clock();
 				*this->_pExternalFlag1 = true;
+				this->tickCount++;
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(_advancedTimer_microsecond));
 		}
@@ -131,6 +135,7 @@ private:
 				start = clock();
 				*this->_pExternalFlag1 = true;
 				*this->_pExternalFlag2 = true;
+				this->tickCount++;
 			}
 			std::this_thread::sleep_for(std::chrono::microseconds(_advancedTimer_microsecond));
 		}
