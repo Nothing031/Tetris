@@ -1,5 +1,6 @@
 #define NOMINMAX
 #include <Windows.h>
+#include <conio.h>
 
 #include <iostream>
 #include <chrono>
@@ -18,7 +19,6 @@ void Tetris::UpdateDisplay(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_varia
 {
     *pLoopFlag = true;
     *pCV_ReadyFlag = false;
-
     mutex _m;
     unique_lock<mutex> lock(_m);
     bool* pFlag = pCV_ReadyFlag;
@@ -31,9 +31,9 @@ void Tetris::UpdateDisplay(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_varia
     while (*pLoopFlag) {
         pCV->wait(lock, [pFlag] {return *pFlag; });
         *pFlag = false;
-        memcpy(cpyMap, gameMap, CpySize::map);
+        memcpy(cpyMap, this->gameMap, CpySize::map);
         
-        this->ioMutex.lock();
+        this->consoleMutex.lock();
         for (int y = 0; y < MAP_HEIGHT; y++) {
             for (int x = 0; x < MAP_WIDTH; x++) {
                 if (cpyMap[y][x] != prevMap[y][x]) {
@@ -51,7 +51,7 @@ void Tetris::UpdateDisplay(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_varia
                 } // endif
             } // endfor x
         } // endfor y
-        this->ioMutex.unlock();
+        this->consoleMutex.unlock();
 
         memcpy(prevMap, cpyMap, CpySize::map);
     } // endwhile
@@ -119,10 +119,11 @@ void Tetris::gameLoopInfinity()
     // this massive shit is longer than my dick wtf
 #pragma endregion
 
+    bool exitGame = false;
     bool nextUpdateDisplayFlag = true;
     DrawBorder();
 
-    while (true) {
+    while (!exitGame) {
         this->DrawQueueBlocks();
 
         // push random mino to the block queue
@@ -147,7 +148,7 @@ void Tetris::gameLoopInfinity()
         *pUpdateDisplayCV_ReadyFlag = true;
         pUpdateDisplayCV->notify_one();
 
-        while (true) {
+        while (!exitGame) {
             pUpdateGameCV->wait(updateGameLock, [pUpdateGameCV_ReadyFlag] {return *pUpdateGameCV_ReadyFlag; });
             *pUpdateGameCV_ReadyFlag = false;
 
@@ -177,9 +178,6 @@ void Tetris::gameLoopInfinity()
             }
 
 #pragma region Move
-
-
-
             // left
             if (Keyboard::ArrowLeft != KeyState::Released && Keyboard::ArrowRight != KeyState::Released) {
                 leftDasTick.Stop();
@@ -323,6 +321,16 @@ void Tetris::gameLoopInfinity()
                     break;
                 }
             }
+            if (Keyboard::Escape == KeyState::Pressing) {
+                Keyboard::Escape = KeyState::Pressed;
+                exitGame = this->Pause();
+                   
+
+            }
+
+
+
+
 #pragma endregion
 
             if (nextUpdateDisplayFlag) {
@@ -342,12 +350,6 @@ void Tetris::gameLoopInfinity()
         rightDasTick.Stop();
         rightArrTick.Stop();
         sdrrTick.Stop();
-
-        Keyboard::ArrowLeft = Released;
-
-        
-
-
 
 
         if (CurrentShit.state == BlockState::Droped) {
@@ -607,10 +609,94 @@ void Tetris::UpdateBlockOnMap() {
     this->CurrentShit.prevGhostPos = this->CurrentShit.ghostPos;
 }
 
-void Tetris::Pause()
+/// <summary>
+/// return exitGame(true) or not
+/// </summary>
+/// <returns></returns>
+bool Tetris::Pause()
 {
+    bool escapeGame = false;
 
+    // show pause display
+    this->consoleMutex.lock();	
+    
+    // clear input buffer
+    while (_kbhit()) {
+        _getch();
+    }
+
+    SetConsoleTextAttribute(this->handle, Color::White);
+    gotoxy(10, 7);
+    wcout << L"┌─────────────────────┐ " << endl;
+    gotoxy(10, 8);
+    wcout << L"│        Paused       │ " << endl;
+    wcout << L"          │                     │ " << endl;
+    wcout << L"          │    EXIT│    CONTINUE│ " << endl;
+    wcout << L"          └─────────────────────┘ " << endl;
+    gotoxy(21, 10);
+    wcout << MAP_BLOCK;
+
+    // get input
+    bool BreakInput = false;
+    int selectedTarget = 1;
+    int input;
+    while (!BreakInput) {
+        input = _getch();
+        if (input == ARROW) {
+            input = _getch();
+        }
+        switch (input) {
+        case ARROW_LEFT:
+            selectedTarget = 0;
+            // erase
+            SetConsoleTextAttribute(this->handle, Color::Black);
+            gotoxy(21, 10);
+            wcout << MAP_BLOCK;
+            // darw
+            SetConsoleTextAttribute(this->handle, Color::White);
+            gotoxy(12, 10);
+            wcout << MAP_BLOCK;
+            break;
+        case ARROW_RIGHT:
+            selectedTarget = 1;
+            // erase
+            SetConsoleTextAttribute(this->handle, Color::Black);
+            gotoxy(12, 10);
+            wcout << MAP_BLOCK;
+            // darw
+            SetConsoleTextAttribute(this->handle, Color::White);
+            gotoxy(21, 10);
+            wcout << MAP_BLOCK;
+            break;
+        case VK_SPACE:
+            BreakInput = true;
+            break;
+        }
+    }
+    // reDraw Map
+    this->consoleMutex.unlock();
+    // must unlock before draw functions to prevent deadlock
+    this->DrawBorder();
+    this->DrawQueueBlocks();
+    this->consoleMutex.lock();
+    for (int y = 0; y < MAP_HEIGHT; y++) {
+        for (int x = 0; x < MAP_WIDTH; x++) {
+            int block = this->gameMap[y][x];
+            SetConsoleTextAttribute(handle, block);
+            if (block == -1)
+                block = Color::DarkGray;
+            gotoxy((x + Offsets::MAP_X) * 2, y + Offsets::MAP_Y);
+            if (block != Color::Black && block != Color::DarkGray)
+                wcout << MAP_BLOCK;
+            else
+                wcout << ((block == Color::Black) ? MAP_VOID : MAP_GHOST);
+        }
+    }
+    Keyboard::HardDrop = KeyState::Pressed;
+    this->consoleMutex.unlock();
+    return selectedTarget == 1 ? false : true;
 }
+
 void Tetris::DrawBorder()
 {
 //0      5               16       21
@@ -629,7 +715,7 @@ void Tetris::DrawBorder()
         //              //
         //              //
         //////////////////24
-    ioMutex.lock();
+    consoleMutex.lock();
     SetConsoleTextAttribute(handle, Color::White);
     // draw horizontal border
     for (int x = 0; x < 6; x++) {
@@ -661,7 +747,7 @@ void Tetris::DrawBorder()
         gotoxy(21 * 2, y);
         std::wcout << MAP_BLOCK;
     }
-    ioMutex.unlock();
+    consoleMutex.unlock();
 }
 void Tetris::DrawInfo()
 {
@@ -675,7 +761,7 @@ void Tetris::DrawQueueBlocks()
     // Draw queue blocks
     queue<Block> tempQueue = nextShitQueue;
     tempQueue.pop();
-    ioMutex.lock();
+    consoleMutex.lock();
     for (int i = 0; i < 5; i++) {
         Block b = tempQueue.front();
         tempQueue.pop();
@@ -728,7 +814,7 @@ void Tetris::DrawQueueBlocks()
             }
         }
     }
-    ioMutex.unlock();
+    consoleMutex.unlock();
 }
 
 int Tetris::ClearLine()
@@ -750,13 +836,13 @@ int Tetris::ClearLine()
 }
 void Tetris::appendLine(int _y)
 {
-    ioMutex.lock();
+    consoleMutex.lock();
     for (int y = _y; y >= 1; y--) {
         for (int x = 0; x < 10; x++) {
             gameMap[y][x] = gameMap[y - 1][x];
         }
     }
-    ioMutex.unlock();
+    consoleMutex.unlock();
 }
 
 bool Tetris::CollisionCheck(int tempOffset[4][2], COORD tempPos){
@@ -822,6 +908,7 @@ void Tetris::LoopUpdateInput(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_var
         // etc command
         UpdateKeyState(&Keyboard::Hold, InputKeySetting::Hold);
         UpdateKeyState(&Keyboard::HardDrop, InputKeySetting::HardDrop);
+        UpdateKeyState(&Keyboard::Escape, VK_ESCAPE);
         this_thread::sleep_for(chrono::microseconds(100)); //0.1ms
     }
 }

@@ -51,7 +51,7 @@ private:
 	random_device rd;
 	mt19937 gen;
 
-	mutex ioMutex;
+	mutex consoleMutex;
 
 	void MoveLeft();
 	void MoveRight();
@@ -66,7 +66,7 @@ private:
 
 	void gotoxy(short x, short y);
 	void UpdateBlockOnMap();
-	void Pause();
+	bool Pause();
 
 	void UpdateDisplay(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
 	void DrawBorder();

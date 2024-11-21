@@ -13,14 +13,7 @@
 #include "gameData.h"
 #include "Tetris.h"
 
-#define ARROW 224
-#define ARROW_UP 72
-#define ARROW_DOWN 80
-#define ARROW_LEFT 75
-#define ARROW_RIGHT 77
-#define SPACE 32
 
-#define DATANAME "data"
 
 // init
 KeyState Keyboard::ArrowLeft = KeyState::Released;
@@ -31,6 +24,7 @@ KeyState Keyboard::SpinFlip = KeyState::Released;
 KeyState Keyboard::SoftDrop = KeyState::Released;
 KeyState Keyboard::HardDrop = KeyState::Released;
 KeyState Keyboard::Hold = KeyState::Released;
+KeyState Keyboard::Escape = KeyState::Released;
 
 // default setting
 int InputKeySetting::ArrowLeft = 0x25;
@@ -97,6 +91,8 @@ int GetKeybindInput();
 int main()
 {
 	Init();
+
+
 
 	ETitleSelectItem selectedItem;
 	while (true) {

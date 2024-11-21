@@ -5,6 +5,15 @@ constexpr wchar_t MAP_BLOCK = L'■';
 constexpr wchar_t MAP_VOID = L'□';
 constexpr wchar_t MAP_GHOST = L'▧';
 
+#define ARROW 224
+#define ARROW_UP 72
+#define ARROW_DOWN 80
+#define ARROW_LEFT 75
+#define ARROW_RIGHT 77
+#define SPACE 32
+
+#define DATANAME "data"
+
 #define MAP_WIDTH 10
 #define MAP_HEIGHT 24
 
@@ -62,7 +71,6 @@ struct Offsets{
     static const int MINO_SPAWN_Y = 0;
 };
 
-
 // key
 
 enum KeyState : int {
@@ -92,6 +100,7 @@ struct Keyboard {
     static KeyState SoftDrop;
     static KeyState HardDrop;
     static KeyState Hold;
+    static KeyState Escape;
 };
 
 struct InputKeySetting {
