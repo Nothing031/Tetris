@@ -44,13 +44,14 @@ private:
 	int minoBagNum = 0;
 	int gameMap[MAP_HEIGHT][MAP_WIDTH];
 	int collisionMap[MAP_HEIGHT][MAP_WIDTH];
-	mutex updateMutex;
 
 	HANDLE handle;
 	HWND hwnd;
 
 	random_device rd;
 	mt19937 gen;
+
+	mutex ioMutex;
 
 	void MoveLeft();
 	void MoveRight();
@@ -84,8 +85,8 @@ private:
 
 	void LoopUpdateInput(bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
 	void CloseloopThread(thread* pThread, bool* pLoopFlag, bool* pWaitFlag, condition_variable* pCV);
-	inline void UpdateKeyState(KeyState* _state, const int& keyCode);
-
+	void UpdateKeyState(KeyState* _state, const int& keyCode);
+	
 
 	void Init(HANDLE& _handle, HWND& _hwnd);
 };
