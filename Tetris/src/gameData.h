@@ -79,18 +79,6 @@ enum KeyState : int {
     Pressed = 2
 };
 
-enum InputKey : int {
-    K_Null,
-    K_ArrowLeft,
-    K_ArrowRight,
-    K_SpinLeft,
-    K_SpinRight,
-    K_SpinFilp,
-    K_SoftDrop,
-    K_HardDrop,
-    K_Hold
-};
-
 struct Keyboard {
     static KeyState ArrowLeft;
     static KeyState ArrowRight;
@@ -101,6 +89,7 @@ struct Keyboard {
     static KeyState HardDrop;
     static KeyState Hold;
     static KeyState Escape;
+    static KeyState Reset;
 };
 
 struct InputKeySetting {
@@ -112,6 +101,7 @@ struct InputKeySetting {
     static int SoftDrop;
     static int HardDrop;
     static int Hold;
+    static int Reset;
 };
 
 struct Handling {

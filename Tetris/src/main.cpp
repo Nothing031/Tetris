@@ -25,6 +25,7 @@ KeyState Keyboard::SoftDrop = KeyState::Released;
 KeyState Keyboard::HardDrop = KeyState::Released;
 KeyState Keyboard::Hold = KeyState::Released;
 KeyState Keyboard::Escape = KeyState::Released;
+KeyState Keyboard::Reset = KeyState::Released;
 
 // default setting
 int InputKeySetting::ArrowLeft = 0x25;
@@ -49,28 +50,7 @@ enum ETitleSelectItem {
 	Play,
 	Settings
 };
-enum ESettingSelectItem {
-	E_START = 0,
-	DAS = E_START,
-	ARR,
-	SDRR,
-	E_STARTBIND,
-	SPIN_RIGHT = E_STARTBIND,
-	SPIN_LEFT,
-	FLIP,
-	HARD_DROP,
-	HOLD
-};
-int SettingSelectItemTable[8] = {
-	3,
-	6,
-	9,
-	14,
-	15,
-	16,
-	17,
-	18
-};
+
 
 void ReadConfig();
 void WriteConfig();
@@ -163,7 +143,31 @@ ETitleSelectItem TitleHome()
 
 }
 void SettingsHome() {
+	int SettingSelectItemTable[8] = {
+	3,
+	6,
+	9,
+	14,
+	15,
+	16,
+	17,
+	18
+	};
+	enum ESettingSelectItem {
+		E_START = 0,
+		DAS = E_START,
+		ARR,
+		SDRR,
+		E_STARTBIND,
+		SPIN_RIGHT = E_STARTBIND,
+		SPIN_LEFT,
+		FLIP,
+		HARD_DROP,
+		HOLD
+	};
+
 	SetConsoleTextAttribute(handle, Color::White);
+#pragma region UI
 	cout << endl;
 	cout << "      " << "esc : save and go back to title" << endl;
 	cout << endl;
@@ -183,11 +187,11 @@ void SettingsHome() {
 	cout << "      " << "Flip" << endl;
 	cout << "      " << "Hard Drop" << endl;
 	cout << "      " << "Hold" << endl;
-	
-	ESettingSelectItem selectedItem = DAS;
 	gotoxy(4, 3);
 	wcout << MAP_BLOCK;
+#pragma endregion
 
+	ESettingSelectItem selectedItem = DAS; // default
 	int input;
 	while (true) {
 		input = ReadKey();
@@ -285,6 +289,7 @@ void SettingsHome() {
 			cout << "                                   ";
 		}
 
+		// keybind setting
 		if (input == VK_RETURN) {
 			if (selectedItem >= ESettingSelectItem::E_STARTBIND) {
 				int bindInput;
@@ -313,6 +318,7 @@ void SettingsHome() {
 				cout << "\r    key bind set                  ";
 			}
 		}
+
 	} // end while
 }
 

@@ -61,45 +61,39 @@ void Tetris::gameLoopInfinity()
 {
 #pragma region tons of... of... idk ticks and threads and wtf
     // ReadKey thread, tick
-    bool _readkeyflag = true;
-    bool _readkeycv_readyflag = false;
-    bool* pReadKeyFlag = &_readkeyflag;
-    bool* pReadKeyCV_ReadyFlag = &_readkeycv_readyflag;
-    condition_variable _readkeycv;
-    condition_variable* pReadKeyCV = &_readkeycv;
-    Tick LoopReadKeyTick(1, pReadKeyCV, pReadKeyCV_ReadyFlag, nullptr);
+    bool readkeyFlag = true;
+    bool readkeyCV_readyFlag = false;
+    condition_variable readkeyCV;
+    Tick LoopReadKeyTick(1, &readkeyCV, &readkeyCV_readyFlag, nullptr);
     LoopReadKeyTick.Start();
-    thread ReadKeyThread(&Tetris::LoopUpdateInput, this, pReadKeyFlag, pReadKeyCV_ReadyFlag, pReadKeyCV);
+    thread ReadKeyThread(&Tetris::LoopUpdateInput, this, &readkeyFlag, &readkeyCV_readyFlag, &readkeyCV);
 
     // UpdateDisplay thread
-    bool _updatedisplayflag = true;
-    bool _updatedisplaycv_readyflag = false;
-    bool* pUpdateDislayFlag = &_updatedisplayflag;
-    bool* pUpdateDisplayCV_ReadyFlag = &_updatedisplaycv_readyflag;
-    condition_variable _updatedisplaycv;
-    condition_variable* pUpdateDisplayCV = &_updatedisplaycv;
-    thread UpdateDisplayThread(&Tetris::UpdateDisplay, this, pUpdateDislayFlag, pUpdateDisplayCV_ReadyFlag, pUpdateDisplayCV);
+    bool updateDisplayFlag = true;
+    bool updateDisplayCV_readyFlag = false;
+    condition_variable updateDisplayCV;
+    thread UpdateDisplayThread(&Tetris::UpdateDisplay, this, &updateDisplayFlag, &updateDisplayCV_readyFlag, &updateDisplayCV);
 
     // UpdateGame tick
-    bool _updategamecv_readyflag = false;
-    bool* pUpdateGameCV_ReadyFlag = &_updategamecv_readyflag;
-    condition_variable _updategamecv;
-    condition_variable* pUpdateGameCV = &_updategamecv;
-    Tick updateGameTick(1, pUpdateGameCV, pUpdateGameCV_ReadyFlag, nullptr);
+    bool updateGameCV_readyFlag = false;
+    condition_variable updateGameCV;
+    Tick updateGameTick(1, &updateGameCV, &updateGameCV_readyFlag, nullptr);
     updateGameTick.Start();
     mutex updateGameMutex;
     unique_lock<mutex> updateGameLock(updateGameMutex);
 
     // gravity tick
-    bool _gravityflag = false;
-    bool* pGravityFlag = &_gravityflag;
-    Tick gravityTick(1000, nullptr, pGravityFlag, nullptr);
+    bool gravityFlag = false;
+    Tick gravityTick(1000, nullptr, &gravityFlag, nullptr);
 
     // forceDrop tick
-    bool ForceDropTicking;
-    bool _forcedropflag = false;
-    bool* pForceDropFlag = &_forcedropflag;
-    Tick ForceDropTick(2000, nullptr, pForceDropFlag, nullptr);
+    bool forceDropFlag = false;
+    Tick ForceDropTick(1500, nullptr, &forceDropFlag, nullptr);
+
+    // reset tick
+    bool resetFlag = false;
+    Tick resetTick(1000, nullptr, &resetFlag, nullptr);
+
 
     // move tick
     //// left
@@ -118,14 +112,12 @@ void Tetris::gameLoopInfinity()
 
     // this massive shit is longer than my dick wtf
 #pragma endregion
-
     bool exitGame = false;
     bool nextUpdateDisplayFlag = true;
+
     DrawBorder();
 
     while (!exitGame) {
-        this->DrawQueueBlocks();
-
         // push random mino to the block queue
         while (this->nextShitQueue.size() < 7) {
             this->nextShitQueue.push(GetRandomMino());
@@ -134,6 +126,9 @@ void Tetris::gameLoopInfinity()
         // set next block
         this->CurrentShit = this->nextShitQueue.front();
         this->nextShitQueue.pop();
+
+        // draw queue blocks
+        DrawQueueBlocks();
 
         // try spawn
         if (!this->TrySpawn()) {
@@ -145,36 +140,40 @@ void Tetris::gameLoopInfinity()
         UpdateBlockOnMap();
         gravityTick.Start();
         
-        *pUpdateDisplayCV_ReadyFlag = true;
-        pUpdateDisplayCV->notify_one();
+        updateDisplayCV_readyFlag = true;
+        updateDisplayCV.notify_one();
 
         while (!exitGame) {
-            pUpdateGameCV->wait(updateGameLock, [pUpdateGameCV_ReadyFlag] {return *pUpdateGameCV_ReadyFlag; });
-            *pUpdateGameCV_ReadyFlag = false;
+            updateGameCV.wait(updateGameLock, [&updateGameCV_readyFlag] {return updateGameCV_readyFlag; });
+            updateGameCV_readyFlag = false;
 
             // force drop check
             if (this->CurrentShit.pos.Y == this->CurrentShit.ghostPos.Y) {
-                if (!ForceDropTicking) {
-                    ForceDropTicking = true;
+                if (!ForceDropTick.running) {
                     ForceDropTick.Start();
                 }
             }
             else {
                 ForceDropTick.Stop();
-                *pForceDropFlag = false;
-                ForceDropTicking = false;
+                forceDropFlag = false;
             }
-            if (*pForceDropFlag) {
+            if (forceDropFlag) {
                 this->CurrentShit.pos = this->CurrentShit.ghostPos;
                 CurrentShit.state = BlockState::Droped;
                 break;
             }
 
             // gravity check
-            if (*pGravityFlag) {
-                *pGravityFlag = false;
+            if (gravityFlag) {
+                gravityFlag = false;
                 nextUpdateDisplayFlag = true;
                 SoftDrop();
+            }
+
+            // reset check
+            if (resetFlag) {
+                resetTick.Stop();
+                break;
             }
 
 #pragma region Move
@@ -187,14 +186,8 @@ void Tetris::gameLoopInfinity()
             }
             else if (Keyboard::ArrowLeft == KeyState::Pressing) {
                 nextUpdateDisplayFlag = true;
-                this->MoveLeft();
+                MoveLeft();
                 leftDasFlag = false;
-                //if (Keyboard::ArrowRight == KeyState::Pressed) {
-                //    rightDasTick.Stop();
-                //    rightArrTick.Stop();
-                //    Keyboard::ArrowRight = KeyState::Pressing;
-                //}
-
                 Keyboard::ArrowLeft = KeyState::Pressed;
                 if (!leftDasTick.running) {
                     leftDasTick.Start();
@@ -207,7 +200,7 @@ void Tetris::gameLoopInfinity()
                 if (leftDasFlag && leftArrFlag) {
                     leftArrFlag = false;
                     nextUpdateDisplayFlag = true;
-                    this->MoveLeft();
+                    MoveLeft();
                 }
             }
             else {
@@ -227,14 +220,8 @@ void Tetris::gameLoopInfinity()
             }
             else if (Keyboard::ArrowRight == KeyState::Pressing) {
                 nextUpdateDisplayFlag = true;
-                this->MoveRight();
+                MoveRight();
                 rightDasFlag = false;
-                //if (Keyboard::ArrowLeft == KeyState::Pressed) {
-                //    leftDasTick.Stop();
-                //    leftArrTick.Stop();
-                //    Keyboard::ArrowLeft = KeyState::Pressing;
-                //}
-
                 Keyboard::ArrowRight = KeyState::Pressed;
                 if (!rightDasTick.running) {
                     rightDasTick.Start();
@@ -269,7 +256,7 @@ void Tetris::gameLoopInfinity()
             else {
                 if (Keyboard::SoftDrop == KeyState::Pressing) {
                     nextUpdateDisplayFlag = true;
-                    this->SoftDrop();
+                    SoftDrop();
                     sdrrFlag = false;
                     Keyboard::SoftDrop = KeyState::Pressed;
                 }
@@ -278,7 +265,7 @@ void Tetris::gameLoopInfinity()
                     if (sdrrFlag) {
                         sdrrFlag = false;
                         nextUpdateDisplayFlag = true;
-                        this->SoftDrop();
+                        SoftDrop();
                     }
                 }
                 else {
@@ -293,24 +280,24 @@ void Tetris::gameLoopInfinity()
             if (Keyboard::SpinLeft == KeyState::Pressing) {
                 Keyboard::SpinLeft = KeyState::Pressed;
                 nextUpdateDisplayFlag = true;
-                this->SpinLeft();
+                SpinLeft();
             }
             if (Keyboard::SpinRight == KeyState::Pressing) {
                 Keyboard::SpinRight = KeyState::Pressed;
                 nextUpdateDisplayFlag = true;
-                this->SpinRight();
+                SpinRight();
             }
             if (Keyboard::SpinFlip == KeyState::Pressing) {
                 Keyboard::SpinFlip = KeyState::Pressed;
                 nextUpdateDisplayFlag = true;
-                this->Flip();
+                Flip();
             }
 #pragma endregion
 #pragma region ETC
             if (Keyboard::HardDrop == KeyState::Pressing) {
                 Keyboard::HardDrop = KeyState::Pressed;
                 this->CurrentShit.pos.Y = this->CurrentShit.ghostPos.Y;
-                this->UpdateBlockOnMap();
+                UpdateBlockOnMap();
                 this->CurrentShit.state = BlockState::Droped;
                 break;
             }
@@ -323,9 +310,30 @@ void Tetris::gameLoopInfinity()
             }
             if (Keyboard::Escape == KeyState::Pressing) {
                 Keyboard::Escape = KeyState::Pressed;
-                exitGame = this->Pause();
-                   
-
+                exitGame = Pause();
+            }
+            if (Keyboard::Reset == KeyState::Pressing) {
+                Keyboard::Reset = KeyState::Pressed;
+            }
+            if (Keyboard::Reset == KeyState::Pressed) {
+                if (!resetTick.running) {
+                    resetTick.Start();
+                    this->consoleMutex.lock();
+                    gotoxy(2, 1);
+                    SetConsoleTextAttribute(this->handle, Color::White);
+                    cout << "RESETTING...";
+                    this->consoleMutex.unlock();
+                }
+            }
+            else {
+                if (resetTick.running) {
+                    resetTick.Stop();
+                    this->consoleMutex.lock();
+                    gotoxy(2, 1);
+                    SetConsoleTextAttribute(this->handle, Color::White);
+                    cout << "            ";
+                    this->consoleMutex.unlock();
+                }
             }
 
 
@@ -333,14 +341,12 @@ void Tetris::gameLoopInfinity()
 
 #pragma endregion
 
+            // notify to display thread
             if (nextUpdateDisplayFlag) {
                 nextUpdateDisplayFlag = false;
-                *pUpdateDisplayCV_ReadyFlag = true;
-                pUpdateDisplayCV->notify_one();
-
+                updateDisplayCV_readyFlag = true;
+                updateDisplayCV.notify_one();
             }
-            
-
         }// endwhile BlockLoop
 
         gravityTick.Stop();
@@ -350,37 +356,60 @@ void Tetris::gameLoopInfinity()
         rightDasTick.Stop();
         rightArrTick.Stop();
         sdrrTick.Stop();
-
+        resetTick.Stop();
 
         if (CurrentShit.state == BlockState::Droped) {
-            ClearLine();
-            this->DisableNextHold = false;
-            memcpy(collisionMap, gameMap, CpySize::map);
+            Drop();
         }
         if (CurrentShit.state == BlockState::Hold) {
-            this->DisableNextHold = true;
-            memcpy(gameMap, collisionMap, CpySize::map);
-            if (HoldShit.minoType == EMino::NULL_MINO) {
-                this->HoldShit = this->CurrentShit;
-            }
-            else {
-                queue<Block> tempQueue;
-                tempQueue.push(this->HoldShit);
-                while (!this->nextShitQueue.empty()) {
-                    tempQueue.push(this->nextShitQueue.front());
-                    this->nextShitQueue.pop();
-                }
-                this->nextShitQueue = tempQueue;
-                this->HoldShit = this->CurrentShit;
-            }
+            Hold();
+        }
+        if (resetFlag) {
+            resetFlag = false;
+            Reset();
         }
     }// endwhile GameLoop
 
     updateGameTick.Stop();
     LoopReadKeyTick.Stop();
-    CloseloopThread(&ReadKeyThread, pReadKeyFlag, pReadKeyCV_ReadyFlag, pReadKeyCV);
-    CloseloopThread(&UpdateDisplayThread, pUpdateDislayFlag, pUpdateDisplayCV_ReadyFlag, pUpdateDisplayCV);
+    CloseloopThread(&ReadKeyThread, &readkeyFlag, &readkeyCV_readyFlag, &readkeyCV);
+    CloseloopThread(&UpdateDisplayThread, &updateDisplayFlag, &updateDisplayCV_readyFlag, &updateDisplayCV);
+    
+}
 
+void Tetris::Drop() {
+    this->ClearLine();
+    this->DisableNextHold = false;
+    memcpy(this->collisionMap, this->gameMap, CpySize::map);
+}
+void Tetris::Hold() {
+    this->DisableNextHold = true;
+    memcpy(this->gameMap, this->collisionMap, CpySize::map);
+    if (this->HoldShit.minoType == EMino::NULL_MINO) {
+        this->HoldShit = this->CurrentShit;
+    }
+    else {
+        queue<Block> tempQueue;
+        tempQueue.push(this->HoldShit);
+        while (!this->nextShitQueue.empty()) {
+            tempQueue.push(this->nextShitQueue.front());
+            this->nextShitQueue.pop();
+        }
+        this->nextShitQueue = tempQueue;
+        this->HoldShit = this->CurrentShit;
+    }
+}
+void Tetris::Reset() {
+    this->consoleMutex.lock();
+    Init(this->handle, this->hwnd);
+    SetConsoleTextAttribute(this->handle, Color::Black);
+    for (int i = 0; i < 4; i++) {
+        gotoxy((1 + i) * 2, 5);
+        std::wcout << MAP_VOID;
+        gotoxy((1 + i) * 2, 6);
+        std::wcout << MAP_VOID;
+    }
+    this->consoleMutex.unlock();
 }
 
 void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
@@ -405,7 +434,11 @@ void Tetris::Init(HANDLE &_handle, HWND &_hwnd)
     this->minoBag[4] = EMino::S_MINO;
     this->minoBag[5] = EMino::T_MINO;
     this->minoBag[6] = EMino::Z_MINO;
+    this->minoBagNum = 0;
 
+    while (!this->nextShitQueue.empty()) {
+        this->nextShitQueue.pop();
+    }
     // init etc
     for (int i = 0; i < 7; i++) {
         this->nextShitQueue.push(GetRandomMino());
@@ -760,7 +793,6 @@ void Tetris::DrawQueueBlocks()
 {
     // Draw queue blocks
     queue<Block> tempQueue = nextShitQueue;
-    tempQueue.pop();
     consoleMutex.lock();
     for (int i = 0; i < 5; i++) {
         Block b = tempQueue.front();
@@ -909,6 +941,7 @@ void Tetris::LoopUpdateInput(bool* pLoopFlag, bool* pCV_ReadyFlag, condition_var
         UpdateKeyState(&Keyboard::Hold, InputKeySetting::Hold);
         UpdateKeyState(&Keyboard::HardDrop, InputKeySetting::HardDrop);
         UpdateKeyState(&Keyboard::Escape, VK_ESCAPE);
+        UpdateKeyState(&Keyboard::Reset, 'R');
         this_thread::sleep_for(chrono::microseconds(100)); //0.1ms
     }
 }

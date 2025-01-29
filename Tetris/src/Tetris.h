@@ -26,15 +26,6 @@ public:
 	void gameLoopInfinity();
 
 private:
-	// new tick
-
-	//Tick newUpdateGameTick;
-	//condition_variable newUpdateGameCV;
-	//bool newUpdateGameFlag;
-
-	//bool newRunning;
-
-
 	Block CurrentShit;
 	queue<Block> nextShitQueue;
 	Block HoldShit;
@@ -60,6 +51,10 @@ private:
 	void SpinRight();
 	void Flip();
 	bool TrySpawn();
+	void Drop();
+	void Hold();
+	void Reset();
+
 
 	bool CollisionCheck(int tempOffset[4][2], COORD tempPos);
 	bool KickCheck(int tempOffset[4][2], COORD*derefTempPos, EStateChanges changes);
