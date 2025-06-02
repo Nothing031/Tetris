@@ -1,4 +1,4 @@
-# Tetrio3
+# Tetris
 ### Control
 * select : enter / space
 * move : Arrow
